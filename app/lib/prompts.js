@@ -2,7 +2,7 @@ import { COLORS, LIGHT_COLORS, SUIT_COLORS } from './colors';
 import { httpError } from './server';
 
 const COMMON_RULES = `
-- 모든 입력 이미지는 동일 인물 참고용이다. 1~8장의 사진을 종합해 그 사람의 고유한 얼굴 특징과 정체성을 안정적으로 파악한다.
+- 모든 입력 이미지는 동일 인물 참고용이다. 2~3장의 사진을 종합해 그 사람의 고유한 얼굴 특징과 정체성을 안정적으로 파악한다.
 - 최종 결과는 반드시 동일 인물로 명확하게 알아볼 수 있어야 한다.
 - 눈, 코, 입의 기본적인 특징과 얼굴의 전체적인 인상은 유지한다.
 - 그러나 촬영 당시의 어색한 시선, 표정, 얼굴 비대칭, 흐릿한 턱선, 좋지 않은 조명, 자세 왜곡, 흐트러진 헤어는 적극적으로 개선할 수 있다.
@@ -62,6 +62,157 @@ export function buildClothing({ gender, outfitKind, suitColor, casualItem, color
   throw httpError(400, '옷 선택값이 올바르지 않습니다.');
 }
 
+
+
+// 1차: 여러 참고사진에서 가장 안정적인 정면 얼굴 기준 이미지를 만든다.
+export function buildFaceBasePrompt(sel) {
+  const expression = EXPRESSIONS[sel.expression];
+  if (!expression) throw httpError(400, '표정을 선택해 주세요.');
+  const genderText = sel.gender === 'female' ? '여학생' : '남학생';
+
+  return `
+Use all 2–3 uploaded reference photos as references of the SAME PERSON.
+
+Create one clean BASE PORTRAIT of this ${genderText}. This is pass 1 of a two-pass workflow.
+
+TOP PRIORITY:
+Build the most stable, flattering, front-facing version of the same person's face before final styling.
+
+IDENTITY:
+- Keep the person clearly recognizable.
+- Preserve distinctive eyes, nose, mouth, ears, overall proportions and identity.
+- Do not copy temporary camera distortion, awkward head angle, uneven gaze, tense mouth posture, poor lighting or messy hair.
+- Identity preservation does not mean minimal correction.
+
+FACE AND GAZE:
+- Correct the head to a natural front-facing position.
+- Make both eyes naturally look into the camera.
+- Balance temporary asymmetry caused by expression or camera angle.
+- Create this expression: ${expression}
+- Keep the result realistic and clearly the same person.
+
+HAIR:
+- Preserve natural hairline and hair color.
+- Tidy fringe, side silhouette and crown volume.
+- Remove flyaways.
+- Make the hair look prepared for a professional studio session.
+
+SKIN:
+- Apply only medium cleanup in pass 1.
+- Reduce obvious redness, blemishes and uneven tone.
+- Keep realistic skin texture.
+- Do not spend this pass on clothing color or final beauty effects.
+
+BACKGROUND AND COMPOSITION:
+- neutral pale gray studio background
+- vertical 3:4
+- centered front-facing upper body portrait
+- eyes level with camera
+- shoulders visible
+- balanced headroom
+
+The output of pass 1 should be the best clean FACE BASE for the same person.
+`;
+}
+
+// 2차: 1차 얼굴 기준을 유지하면서 최종 하이엔드 사진관 리터칭을 강하게 적용한다.
+export function buildSecondPassPrompt(sel) {
+  const clothing = buildClothing(sel);
+  const background = BACKGROUNDS[sel.background];
+  if (!background) throw httpError(400, '배경색을 선택해 주세요.');
+  const genderText = sel.gender === 'female' ? '여학생' : '남학생';
+
+  return `
+Edit the previously generated base portrait into the FINAL premium Korean studio ID photo of this ${genderText}.
+
+KEEP:
+- Keep the identity and core face from the previous portrait recognizable.
+- Do not revert to the original unflattering camera moment.
+- Do not stop at natural cleanup.
+
+FINAL RETOUCHING INTENSITY:
+Perform a clearly visible HIGH-END BEAUTY RETOUCH.
+The result must look substantially more polished than pass 1.
+Target a premium Korean actor-agency profile / executive portrait / high-end employment photo finish.
+
+FACE:
+- improve visual facial balance without changing the person into someone else
+- refine jawline definition through lighting and retouching
+- refine cheek contour transitions
+- remove tired-looking temporary shadows
+- make the face look more photogenic, alert, and professionally photographed
+
+SKIN — STRONG:
+- reduce under-eye darkness and eye-bag shadows by about 75–85%
+- reduce nasolabial and mouth-area shadows by about 60–70%
+- reduce beard shadow and gray tone around mouth and chin by about 70%
+- strongly reduce redness, blemishes, uneven tone, rough texture and visible pores
+- brighten the central face
+- keep fine realistic texture so skin does not look plastic
+
+DODGE & BURN — STRONG:
+- brighten forehead center
+- brighten nose bridge
+- brighten upper cheekbones
+- brighten the under-eye triangle
+- add subtle controlled shadow beneath cheekbones
+- define the jawline with a soft controlled shadow
+- make the outer facial perimeter slightly darker than the center
+- create a cleaner, more sculpted, premium studio look through light and shadow
+
+EYES:
+- preserve natural eye shape
+- make iris and pupil detail clearly sharper
+- add small symmetrical natural studio catchlights
+- reduce redness and dullness in the whites of the eyes
+- clean eyelid and under-eye area
+- make the gaze feel direct, lively, and confident
+
+HAIR — STRONG RESTYLING:
+- preserve natural hairline and hair color
+- increase crown volume
+- refine fringe direction
+- clean bulky or uneven side silhouette
+- remove stray hairs
+- add realistic strand separation and subtle healthy shine
+- make the hair look professionally styled immediately before the portrait session
+
+CLOTHING:
+- ${clothing}
+- perfectly clean fit
+- symmetrical collar and lapels
+- remove wrinkles and compositing artifacts
+- realistic neck-to-collar shadows
+
+LIGHTING:
+- premium Korean portrait studio beauty lighting
+- large soft key light slightly above camera level
+- soft frontal fill
+- subtle rim light
+- bright clean facial center with controlled dimensional shadows
+- not flat passport lighting
+
+BACKGROUND:
+- ${background}
+- smooth seamless low-saturation studio background
+- subtle radial brightness behind the head
+- no objects, text, patterns or scenery
+- do not use a vivid sky-blue background
+
+COMPOSITION:
+- vertical 3:4 professional ID portrait
+- perfectly front-facing
+- centered face
+- shoulders visible
+- balanced headroom
+
+FINAL PRIORITY:
+Do not interpret identity preservation as conservative retouching.
+The visual difference between pass 1 and the final image must be obvious.
+The result should look like the same person after professional grooming, hair styling, wardrobe preparation, premium studio lighting, and extensive manual Photoshop retouching.
+`;
+}
+
 // 최종 증명사진 프롬프트
 export function buildFinalPrompt(sel) {
   const clothing = buildClothing(sel);
@@ -74,7 +225,7 @@ export function buildFinalPrompt(sel) {
 
   return `
 당신은 한국 프리미엄 사진관의 증명사진 리터칭 및 의상 합성 전문가다.
-입력된 1~8장의 동일 인물 사진을 모두 참고해, 학생의 고유한 정체성은 유지하면서 촬영 순간의 제약을 적극적으로 보완한 고급 증명사진 1장을 생성한다.
+입력된 2~3장의 동일 인물 사진을 모두 참고해, 학생의 고유한 정체성은 유지하면서 촬영 순간의 제약을 적극적으로 보완한 고급 증명사진 1장을 생성한다.
 
 [핵심 원칙]
 ${COMMON_RULES}
@@ -181,7 +332,7 @@ ${COMMON_RULES}
 export function buildComparePrompt(colorKey) {
   const color = colorText(colorKey);
   return `
-입력된 1~8장의 동일 인물 사진을 참고해 퍼스널 컬러 비교용 사진 1장을 생성한다.
+입력된 2~3장의 동일 인물 사진을 참고해 퍼스널 컬러 비교용 사진 1장을 생성한다.
 이 사진은 같은 사람이 여러 색 옷을 입은 사진을 나란히 비교하기 위한 것이므로, 옷 색 외의 조건은 항상 똑같아야 한다.
 
 [핵심 원칙]
