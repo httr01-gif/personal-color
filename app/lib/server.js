@@ -17,8 +17,10 @@ export function imageModel() {
 
 export async function readImages(form) {
   const files = form.getAll('images').filter((v) => v && typeof v.arrayBuffer === 'function');
-  if (files.length < 1) throw httpError(400, '사진을 1장 이상 올려 주세요.');
-  if (files.length > 8) throw httpError(400, '사진은 최대 8장까지 사용할 수 있습니다.');
+
+  if (files.length < 2) throw httpError(400, '사진은 2장 이상 올려 주세요.');
+  if (files.length > 3) throw httpError(400, '사진은 최대 3장까지 사용할 수 있습니다.');
+
   const out = [];
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
