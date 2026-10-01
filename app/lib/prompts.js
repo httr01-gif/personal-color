@@ -1,256 +1,204 @@
-export function buildFinalPrompt({
-  gender = "student",
-  outfitType = "suit",
-  suitColor = "navy",
-  shirtColor = "white",
-  backgroundColor = "cool-gray",
-  expression = "calm",
-}) {
-  const genderText =
-    gender === "female"
-      ? "female student or young woman"
-      : gender === "male"
-      ? "male student or young man"
-      : "student";
+import { COLORS, LIGHT_COLORS, SUIT_COLORS } from './colors';
+import { httpError } from './server';
 
-  const expressionText =
-    expression === "smile"
-      ? "a gentle, natural, confident smile"
-      : "a calm, relaxed, confident expression with a very subtle smile";
+const COMMON_RULES = `
+- 모든 입력 이미지는 동일 인물 참고용이다. 1~8장의 사진을 종합해 그 사람의 고유한 얼굴 특징과 정체성을 안정적으로 파악한다.
+- 최종 결과는 반드시 동일 인물로 명확하게 알아볼 수 있어야 한다.
+- 눈, 코, 입의 기본적인 특징과 얼굴의 전체적인 인상은 유지한다.
+- 그러나 촬영 당시의 어색한 시선, 표정, 얼굴 비대칭, 흐릿한 턱선, 좋지 않은 조명, 자세 왜곡, 흐트러진 헤어는 적극적으로 개선할 수 있다.
+- 동일인 유지라는 조건을 최소한의 보정으로 해석하지 않는다.
+- 일반 증명사진보다 훨씬 적극적인 프리미엄 사진관 및 배우 프로필 수준의 미용 보정을 허용한다.
+- 눈을 비정상적으로 크게 만들거나 전혀 다른 사람의 얼굴로 변경하지 않는다.
+- 장애 유무를 추정하거나 외형으로 표현하지 않는다. 촬영 순간의 제약을 보완해 본인의 단정하고 자신감 있는 모습을 구현한다.
+- 안경을 쓴 경우 안경의 전체적인 디자인은 유지하고 렌즈 반사와 왜곡을 적극적으로 제거한다.`;
 
-  const suitMap = {
-    black: "deep black tailored suit",
-    navy: "deep navy tailored suit",
-    gray: "charcoal gray tailored suit",
-  };
+const BACKGROUNDS = {
+  white: '깨끗한 흰색 스튜디오 배경',
+  blue: '채도가 낮은 아주 옅은 블루그레이 스튜디오 배경',
+  gray: '중성적인 아주 연한 쿨그레이 스튜디오 배경'
+};
 
-  const shirtMap = {
-    white: "pure white dress shirt",
-    blue: "light blue dress shirt",
-    navy: "deep navy shirt",
-    black: "black shirt",
-  };
+const EXPRESSIONS = {
+  smile: '웃는 얼굴: 입을 다문 자연스럽고 자신감 있는 미소',
+  calm: '차분한 얼굴: 편안하고 자신감 있는 중립 표정'
+};
 
-  const backgroundMap = {
-    white: "clean white studio background",
-    "cool-gray":
-      "neutral pale cool-gray studio background with a very subtle blue-gray tone",
-    bluegray:
-      "very pale desaturated blue-gray studio background",
-  };
+function colorText(key) {
+  const c = COLORS[key];
+  if (!c) throw httpError(400, '색 선택값이 올바르지 않습니다.');
+  return `${c.label}(${c.hex})`;
+}
 
-  const suit = suitMap[suitColor] || suitMap.navy;
-  const shirt = shirtMap[shirtColor] || shirtMap.white;
-  const background =
-    backgroundMap[backgroundColor] || backgroundMap["cool-gray"];
+function innerColor(key) {
+  return LIGHT_COLORS.includes(key) ? '연한 하늘색' : '깨끗한 흰색';
+}
 
-  let clothingPrompt = "";
+// 학생 선택값을 의상 설명으로 조합 (허용된 값만 사용)
+export function buildClothing({ gender, outfitKind, suitColor, casualItem, colorKey }) {
+  const color = colorText(colorKey);
+  const suit = SUIT_COLORS[suitColor]?.label;
 
-  if (outfitType === "suit") {
-    clothingPrompt = `
-CLOTHING:
-- ${suit}
-- pure white dress shirt
-- solid deep navy silk tie
-- perfectly centered clean tie knot
-- symmetrical shirt collar
-- structured shoulders
-- clean tailored lapels
-- no wrinkles
-- no striped tie
-- no patterned tie
-`;
-  } else if (outfitType === "shirt") {
-    clothingPrompt = `
-CLOTHING:
-- ${shirt}
-- clean structured collar
-- neat professional fit
-- no wrinkles
-- simple and refined appearance
-`;
-  } else if (outfitType === "knit") {
-    clothingPrompt = `
-CLOTHING:
-- clean premium knitwear
-- simple solid color
-- neat neckline
-- refined student portrait styling
-- no distracting patterns
-`;
-  } else if (outfitType === "blouse") {
-    clothingPrompt = `
-CLOTHING:
-- elegant clean blouse
-- refined simple silhouette
-- neat neckline
-- premium portrait-studio styling
-- no distracting patterns
-`;
-  } else if (outfitType === "cardigan") {
-    clothingPrompt = `
-CLOTHING:
-- neat premium cardigan over a clean inner shirt or blouse
-- simple solid-color styling
-- tidy professional appearance
-`;
-  } else {
-    clothingPrompt = `
-CLOTHING:
-- clean and polished student portrait clothing
-- simple, premium, professional styling
-`;
+  if (gender === 'male') {
+    if (outfitKind === 'suit') {
+      if (!suit) throw httpError(400, '정장 색을 선택해 주세요.');
+      return `${suit} 남성 정장 재킷, 순백색 드레스 셔츠, 단색 딥 네이비 실크 넥타이. 넥타이는 무늬나 스트라이프 없이 단색으로 한다. 셔츠 깃과 넥타이 매듭은 정중앙에 반듯하게 정렬한다.`;
+    }
+    if (outfitKind === 'casual') {
+      if (casualItem === 'shirt') return `${color} 단색 옥스퍼드 남방(깃 있는 셔츠), 넥타이 없음.`;
+      if (casualItem === 'knit') return `${color} 라운드넥 니트, 안쪽에 ${innerColor(colorKey)} 셔츠 깃이 보이도록 레이어드, 넥타이 없음.`;
+      throw httpError(400, '남방 또는 니트를 선택해 주세요.');
+    }
   }
 
+  if (gender === 'female') {
+    if (outfitKind === 'suit') {
+      if (!suit) throw httpError(400, '정장 색을 선택해 주세요.');
+      return `${suit} 여성용 테일러드 재킷, 안쪽에는 깨끗한 흰색 블라우스. 넥타이 없음. 재킷과 블라우스는 주름 없이 단정하고 고급스럽게 표현한다.`;
+    }
+    if (outfitKind === 'blouse') return `${color} 단정한 블라우스, 넥타이 없음.`;
+    if (outfitKind === 'cardigan') return `${color} 단정한 가디건, 안쪽에 ${innerColor(colorKey)} 이너, 넥타이 없음.`;
+  }
+
+  throw httpError(400, '옷 선택값이 올바르지 않습니다.');
+}
+
+// 최종 증명사진 프롬프트
+export function buildFinalPrompt(sel) {
+  const clothing = buildClothing(sel);
+  const color = colorText(sel.colorKey);
+  const expression = EXPRESSIONS[sel.expression];
+  const background = BACKGROUNDS[sel.background];
+  if (!expression) throw httpError(400, '표정을 선택해 주세요.');
+  if (!background) throw httpError(400, '배경색을 선택해 주세요.');
+  const genderText = sel.gender === 'female' ? '여학생' : '남학생';
+
   return `
-Use ALL uploaded reference photos as identity references for the SAME PERSON.
+당신은 한국 프리미엄 사진관의 증명사진 리터칭 및 의상 합성 전문가다.
+입력된 1~8장의 동일 인물 사진을 모두 참고해, 학생의 고유한 정체성은 유지하면서 촬영 순간의 제약을 적극적으로 보완한 고급 증명사진 1장을 생성한다.
 
-Create a dramatically refined, high-end Korean portrait-studio ID photograph of this ${genderText}.
+[핵심 원칙]
+${COMMON_RULES}
+- 대상: ${genderText}.
+- 성별 고정관념을 과장하지 않는다.
+- 결과물은 원본을 단순히 조금 보정한 사진이 아니라, 전문 사진관에서 헤어, 의상, 조명, 포토샵 리터칭을 모두 받은 결과처럼 보여야 한다.
+- 보정 전후 차이는 육안으로 분명하게 느껴져야 한다.
 
-IMPORTANT GOAL:
-The final result must look substantially more polished, groomed, photogenic and professionally photographed than the source images.
-The before-and-after improvement should be immediately visible.
+[표정과 시선]
+- 카메라를 자연스럽게 정면 응시하도록 보정한다.
+- 표정: ${expression}
+- 촬영 당시의 굳거나 어색한 입 모양, 눈 주변 긴장, 시선 불일치를 그대로 유지하지 않는다.
+- 양쪽 눈이 카메라를 자연스럽게 바라보도록 정돈한다.
+- 편안하고 자신감 있는 인상을 만든다.
 
-IDENTITY:
-- The result must remain clearly recognizable as the same person.
-- Preserve the person's distinctive identity and recognizable facial characteristics.
-- Preserve the overall relationship between the eyes, nose, mouth, ears and facial proportions.
-- However, do NOT rigidly preserve every temporary asymmetry, awkward expression, camera distortion, poor posture, messy hairstyle, uneven lighting or unflattering photographic artifact from the input.
-- Identity preservation must NOT be interpreted as minimal retouching.
+[헤어]
+- 기존 머리색과 자연스러운 헤어라인은 유지한다.
+- 기존의 흐트러진 헤어스타일을 그대로 복제하지 않는다.
+- 전문 헤어 스타일링을 받은 것처럼 앞머리 방향, 정수리 볼륨, 옆머리 실루엣을 적극적으로 정돈한다.
+- 잔머리와 삐친 머리를 제거한다.
+- 머릿결은 한 올씩 선명하고 건강하게 보이도록 정리하고 은은한 윤기를 추가한다.
+- 사진관 촬영 직전 전문 스타일링을 받은 듯 단정하고 세련되게 만든다.
 
-RETUCHING INTENSITY:
-Apply STRONG high-end commercial portrait retouching.
+[의상]
+- ${clothing}
+- 캐주얼 의상, 블라우스, 니트, 가디건에서는 선택한 퍼스널 컬러 ${color}를 주된 의상색으로 활용한다.
+- 정장 모드에서는 고급 증명사진의 완성도를 우선하여 흰 셔츠 또는 흰 블라우스를 사용한다.
+- 주름, 합성 흔적 없이 좌우 대칭의 깔끔한 핏으로 표현한다.
+- 목과 옷깃의 경계와 그림자는 실제 촬영처럼 자연스럽게 연결한다.
 
-Target the visual quality of:
-- a premium Korean portrait studio
-- professionally retouched employment photography
-- an actor or agency profile portrait
-- high-end beauty retouching
+[조명과 배경]
+- 한국 프리미엄 사진관의 대형 소프트박스 뷰티 조명을 적용한다.
+- 정면 위쪽의 부드러운 메인 라이트와 약한 정면 필라이트를 사용한다.
+- 머리카락과 배경이 분리되도록 아주 약한 림라이트를 적용한다.
+- 얼굴 중앙은 밝고 깨끗하게, 얼굴 외곽은 아주 미세하게 어둡게 하여 입체감을 만든다.
+- 평평한 여권사진 조명처럼 보이지 않게 한다.
+- 배경: ${background}
+- 인물 뒤 중앙이 아주 은은하게 밝아지는 저채도 스튜디오 그라데이션을 사용한다.
+- 사물, 글자, 패턴, 풍경은 넣지 않는다.
+- 밝은 하늘색 배경처럼 강한 파란색은 사용하지 않는다.
 
-Do not produce a minimally corrected passport photo.
+[구도]
+- 세로 3:4 전문 증명사진.
+- 완전한 정면 상반신.
+- 눈높이는 카메라와 동일.
+- 얼굴은 중앙에 배치한다.
+- 양쪽 어깨가 자연스럽게 보이도록 한다.
+- 머리 위에는 적당한 여백을 둔다.
+- 전체 구도는 안정적이고 좌우 균형이 잘 맞아야 한다.
 
-FACE AND POSE:
-- Correct awkward head angle and posture.
-- Create a perfectly centered front-facing portrait.
-- Align the eyes naturally toward the camera.
-- Keep the face symmetrical and visually balanced where appropriate.
-- Improve the visual definition of the jawline through lighting and retouching.
-- Refine cheek and facial contour transitions.
-- Keep the person recognizable.
+[강한 리터칭: 최우선 적용]
+- 일반 증명사진 보정이 아니라 한국 프리미엄 사진관, 배우 프로필, 취업용 고급 프로필 수준의 강한 상업용 리터칭을 적용한다.
+- 보정 전후 차이가 육안으로 확실하게 느껴져야 한다.
+- 동일인으로 알아볼 수 있는 핵심 특징은 유지하되, 더 단정하고 균형 잡히고 사진발이 좋은 모습으로 적극적으로 정돈한다.
 
-EXPRESSION:
-- Create ${expressionText}.
-- Remove tense or awkward mouth posture.
-- Make the eyes look naturally engaged and alert.
+[피부]
+- Frequency Separation 방식으로 작업한 듯 피부톤과 피부결을 분리하여 정교하게 정돈한다.
+- 잡티, 붉은기, 얼룩, 피부톤 불균일을 적극적으로 제거한다.
+- 모공은 크게 감소시키되 미세한 실제 피부 질감은 남긴다.
+- 다크서클과 눈 밑 음영은 약 60~75% 완화한다.
+- 눈물고랑, 눈 밑 잔주름, 팔자와 입가의 어두운 음영을 부드럽게 완화한다.
+- 수염 자국과 입 주변의 칙칙하고 푸른 색조를 크게 줄인다.
+- 얼굴 중앙은 원본보다 밝고 깨끗하게 표현한다.
+- 피부는 화사하고 균일하게 정리하되 플라스틱처럼 보이지 않게 한다.
 
-SKIN RETOUCHING:
-Apply professional frequency-separation-style retouching.
+[Dodge & Burn]
+- 이마 중앙에 부드러운 하이라이트를 준다.
+- 콧대 중앙에 깨끗하고 좁은 하이라이트를 준다.
+- 광대 상단을 은은하게 밝힌다.
+- 눈 아래 삼각존을 밝게 정돈한다.
+- 광대 아래에는 매우 부드러운 음영을 준다.
+- 턱선 바로 아래에는 얇고 자연스러운 그림자를 만들어 턱선을 또렷하게 한다.
+- 얼굴 외곽은 중앙보다 아주 미세하게 어둡게 하여 얼굴에 입체감을 만든다.
+- 뼈대를 과도하게 바꾸는 대신 빛과 명암으로 훨씬 정돈되고 사진발 좋은 얼굴을 만든다.
 
-- strongly reduce blemishes
-- strongly reduce redness
-- remove uneven skin coloration
-- reduce visible pores while keeping fine realistic skin texture
-- reduce dark circles by approximately 60–75%
-- soften under-eye grooves
-- soften nasolabial shadows
-- reduce dull gray coloration around the mouth
-- reduce beard shadow where present
-- smooth forehead and cheek tonal irregularities
-- brighten the central face
-- retain realistic skin texture
-- avoid waxy or plastic skin
+[눈]
+- 양쪽 눈이 카메라를 자연스럽게 정면 응시하도록 보정한다.
+- 눈동자와 홍채를 선명하게 한다.
+- 작고 자연스러운 스튜디오 캐치라이트를 추가한다.
+- 흰자위의 붉은기와 탁함을 줄인다.
+- 눈꺼풀과 눈가 피부를 깔끔하게 정돈한다.
+- 눈 크기는 과도하게 확대하지 않는다.
 
-DODGE AND BURN:
-Apply detailed professional dodge-and-burn.
+[눈썹과 얼굴 디테일]
+- 눈썹의 삐친 털을 정리하고 자연스러운 선명도를 높인다.
+- 코 옆, 입 주변, 턱 주변의 거친 질감을 정돈한다.
+- 입술은 건강하고 자연스러운 혈색으로 미세하게 보정한다.
 
-- soft highlight on center forehead
-- clean narrow highlight along nose bridge
-- subtle highlight on upper cheekbones
-- brighten the under-eye triangle
-- subtle shadow beneath cheekbones
-- controlled shadow beneath jawline
-- slightly darken the outer facial perimeter
-- create more refined facial dimensionality
+[최종 마감]
+- 눈, 눈썹, 머리카락은 매우 선명하게 표현한다.
+- 피부는 부드럽고 깨끗하게 표현한다.
+- 정장, 셔츠, 넥타이, 블라우스의 원단 질감은 선명하게 유지한다.
+- AI 이미지 특유의 플라스틱 피부, 과도한 HDR, 과도한 샤픈 느낌은 제거한다.
+- 최종 결과는 같은 사람이 전문 사진관에서 전문 헤어 스타일링, 의상 준비, 스튜디오 조명, 고급 포토샵 리터칭을 모두 받은 결과처럼 보여야 한다.
 
-The face should appear more sculpted and photogenic through lighting and retouching, not through obvious cosmetic surgery.
+[최종 우선순위]
+- 동일인으로 알아볼 수 있어야 하지만, 동일인 유지 조건 때문에 보정을 약하게 적용하지 않는다.
+- 헤어, 피부, 시선, 표정, 자세, 조명, 얼굴의 시각적 균형을 적극적으로 개선한다.
+- 결과물은 원본보다 명백하게 세련되고 완성도 높아야 한다.
+`;
+}
 
-EYES:
-- Preserve recognizable eye shape.
-- Improve clarity and brightness.
-- Add small natural studio catchlights.
-- increase iris definition
-- reduce redness in the whites of the eyes
-- reduce dullness
-- make eye contact with the camera clear
-- do not create unnaturally enlarged eyes
+// 퍼스널 컬러 비교 사진 프롬프트 (옷 색만 변경, 약한 보정)
+export function buildComparePrompt(colorKey) {
+  const color = colorText(colorKey);
+  return `
+입력된 1~8장의 동일 인물 사진을 참고해 퍼스널 컬러 비교용 사진 1장을 생성한다.
+이 사진은 같은 사람이 여러 색 옷을 입은 사진을 나란히 비교하기 위한 것이므로, 옷 색 외의 조건은 항상 똑같아야 한다.
 
-EYEBROWS:
-- clean and refine stray hairs
-- improve definition
-- preserve natural eyebrow shape
+[핵심 원칙]
+${COMMON_RULES}
 
-HAIR:
-- preserve the natural hairline and hair color
-- professionally restyle the hair
-- remove stray hairs and flyaways
-- improve fringe direction
-- improve crown volume
-- refine side silhouette
-- add clean strand separation
-- add subtle healthy shine
-- make the hairstyle look intentionally prepared before a professional studio portrait
-- do not merely preserve messy source hair
+[의상]
+- ${color} 단색 라운드넥 상의. 무늬, 로고, 글자 없음.
+- 옷 색이 얼굴 바로 아래 목 부분까지 넓게 보이도록 한다.
 
-${clothingPrompt}
+[고정 조건]
+- 표정: 편안한 중립 표정, 카메라 정면 응시.
+- 조명: 정면에서 고르게 비추는 중립 흰색 조명(따뜻하거나 차가운 색 조명 금지).
+- 배경: 아주 연한 회색 단색.
+- 구도: 세로 3:4, 어깨까지 보이는 정면 상반신, 얼굴 중앙.
 
-LIGHTING:
-Use premium Korean portrait-studio beauty lighting.
-
-- large soft key light slightly above camera level
-- soft frontal fill light
-- subtle rim light separating hair from background
-- bright clean facial center
-- controlled dimensional shadows
-- clean highlights on forehead, nose and cheeks
-- avoid flat passport lighting
-- avoid harsh contrast
-
-BACKGROUND:
-- ${background}
-- smooth seamless studio background
-- low saturation
-- subtle radial brightness behind the head
-- no objects
-- no scenery
-- no text
-- no patterns
-- not bright sky blue
-
-COMPOSITION:
-- vertical 3:4 professional ID portrait
-- perfectly front-facing
-- eyes level with camera
-- head centered
-- shoulders visible
-- balanced headroom
-- stable symmetrical composition
-
-IMAGE QUALITY:
-- extremely polished professional photography
-- high-end retouched commercial portrait
-- realistic photographic detail
-- sharp eyes, eyebrows and hair
-- refined skin
-- premium studio finish
-- no obvious AI artifacts
-- no excessive HDR
-- no cartoon-like appearance
-
-FINAL PRIORITY:
-Prioritize a visibly dramatic improvement in grooming, lighting, skin, hair, posture, expression and overall photographic quality.
-
-The final result should feel like this person visited a premium Korean portrait studio, received professional grooming, hair styling, wardrobe preparation, beauty lighting and extensive manual Photoshop retouching.
-
-The result must still be recognizable as the same person, but it should NOT look like only a lightly edited version of the original photograph.
+[보정]
+- 피부 보정은 약하게 한다. 피부 톤, 피부색, 입술색, 머리색은 원본 그대로 유지한다.
+- 색이 얼굴에 어떻게 어울리는지 비교하는 것이 목적이므로 얼굴 색을 옷 색에 맞춰 바꾸지 않는다.
 `;
 }
