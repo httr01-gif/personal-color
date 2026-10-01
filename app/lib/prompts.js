@@ -115,101 +115,151 @@ The output of pass 1 should be the best clean FACE BASE for the same person.
 `;
 }
 
-// 2차: 1차 얼굴 기준을 유지하면서 최종 하이엔드 사진관 리터칭을 강하게 적용한다.
+// 2차: 얼굴 전용 하이엔드 리터칭. 이 단계에서는 의상과 배경보다 얼굴 완성도를 최우선으로 한다.
 export function buildSecondPassPrompt(sel) {
-  const clothing = buildClothing(sel);
-  const background = BACKGROUNDS[sel.background];
-  if (!background) throw httpError(400, '배경색을 선택해 주세요.');
-  const genderText = sel.gender === 'female' ? '여학생' : '남학생';
+  const expression = EXPRESSIONS[sel.expression];
+  if (!expression) throw httpError(400, '표정을 선택해 주세요.');
 
   return `
-Edit the previously generated base portrait into the FINAL premium Korean studio ID photo of this ${genderText}.
+Edit the previously generated base portrait. This is PASS 2: FACE-ONLY HIGH-END RETOUCH.
 
-KEEP:
-- Keep the identity and core face from the previous portrait recognizable.
-- Do not revert to the original unflattering camera moment.
-- Do not stop at natural cleanup.
+ABSOLUTE PRIORITY:
+Spend nearly all visual attention on the FACE, EYES, SKIN, HAIR, EXPRESSION, and FACIAL LIGHTING.
+Do NOT focus on final clothing color or final background styling yet.
+Do NOT settle for ordinary ID-photo cleanup.
 
-FINAL RETOUCHING INTENSITY:
-Perform a clearly visible HIGH-END BEAUTY RETOUCH.
-The result must look substantially more polished than pass 1.
-Target a premium Korean actor-agency profile / executive portrait / high-end employment photo finish.
+IDENTITY:
+- Keep the same person clearly recognizable.
+- Preserve distinctive eye shape, nose, mouth, ears, facial proportions, and identity.
+- Do not revert to the original awkward camera moment.
+- Identity preservation must NOT be interpreted as conservative retouching.
 
-FACE:
-- improve visual facial balance without changing the person into someone else
-- refine jawline definition through lighting and retouching
-- refine cheek contour transitions
-- remove tired-looking temporary shadows
-- make the face look more photogenic, alert, and professionally photographed
+EXPRESSION AND GAZE:
+- Keep both eyes naturally directed at the camera.
+- Refine temporary asymmetry caused by angle, tension, or blinking.
+- Expression: ${expression}
+- Make the face look calm, alert, confident, and professionally photographed.
 
-SKIN — STRONG:
-- reduce under-eye darkness and eye-bag shadows by about 75–85%
-- reduce nasolabial and mouth-area shadows by about 60–70%
-- reduce beard shadow and gray tone around mouth and chin by about 70%
-- strongly reduce redness, blemishes, uneven tone, rough texture and visible pores
-- brighten the central face
-- keep fine realistic texture so skin does not look plastic
+SKIN — VERY STRONG BEAUTY RETOUCH:
+- reduce under-eye darkness and eye-bag shadows by about 80–90%
+- reduce nasolabial and mouth-area shadows by about 70–80%
+- reduce beard shadow and gray/blue tone around the mouth and chin by about 75–85%
+- strongly reduce redness, blemishes, uneven tone, rough texture, and visible pores
+- smooth tonal transitions across forehead, cheeks, nose, and chin
+- brighten the central face visibly
+- keep a fine realistic skin texture so the skin does not look plastic or waxy
+- remove the tired, dull, or heavy look from the face
 
 DODGE & BURN — STRONG:
 - brighten forehead center
-- brighten nose bridge
+- create a clean narrow highlight along the nose bridge
 - brighten upper cheekbones
-- brighten the under-eye triangle
-- add subtle controlled shadow beneath cheekbones
-- define the jawline with a soft controlled shadow
-- make the outer facial perimeter slightly darker than the center
-- create a cleaner, more sculpted, premium studio look through light and shadow
+- brighten the under-eye triangle clearly
+- add soft controlled shadow beneath cheekbones
+- define the jawline with a clean but realistic shadow below the jaw
+- slightly darken the outer facial perimeter compared with the center
+- improve facial dimensionality through light and shadow without making the person unrecognizable
 
-EYES:
+EYES — STRONG:
 - preserve natural eye shape
-- make iris and pupil detail clearly sharper
+- make iris and pupil detail noticeably sharper
 - add small symmetrical natural studio catchlights
-- reduce redness and dullness in the whites of the eyes
+- reduce redness and dullness in the sclera
 - clean eyelid and under-eye area
-- make the gaze feel direct, lively, and confident
+- make the gaze look brighter, clearer, and more engaged
+- do not create unnaturally enlarged eyes
 
-HAIR — STRONG RESTYLING:
+HAIR — STRONG PROFESSIONAL RESTYLING:
 - preserve natural hairline and hair color
+- refine fringe direction more decisively
 - increase crown volume
-- refine fringe direction
 - clean bulky or uneven side silhouette
-- remove stray hairs
-- add realistic strand separation and subtle healthy shine
-- make the hair look professionally styled immediately before the portrait session
+- remove flyaways and stray hairs
+- add realistic strand separation
+- add subtle healthy shine
+- make the hair look professionally styled immediately before a premium studio session
+
+FACE-ONLY LIGHTING:
+- premium Korean beauty-studio lighting
+- large soft key light slightly above camera level
+- soft frontal fill
+- subtle sculpting light around cheekbones and jaw
+- gentle separation light on hair
+- avoid flat passport lighting
+
+COMPOSITION:
+- keep the face large enough in frame for detailed retouching
+- front-facing
+- eyes level with camera
+- shoulders may remain visible, but FACE QUALITY is the priority
+
+FINAL PRIORITY FOR PASS 2:
+Do not stop at natural cleanup.
+Perform a clearly visible high-end beauty retouch.
+The visual difference between pass 1 and pass 2 must be obvious.
+The face should look like the same person after professional grooming, beauty lighting, and extensive manual Photoshop retouching.
+`;
+}
+
+// 3차: 얼굴은 유지하고 의상, 배경, 최종 색감과 전체 증명사진 구도를 완성한다.
+export function buildThirdPassPrompt(sel) {
+  const clothing = buildClothing(sel);
+  const background = BACKGROUNDS[sel.background];
+  if (!background) throw httpError(400, '배경색을 선택해 주세요.');
+
+  return `
+Edit the previously retouched portrait. This is PASS 3: FINAL STUDIO FINISH.
+
+MOST IMPORTANT:
+Preserve the improved face, eyes, skin, expression, facial lighting, and professionally styled hair from PASS 2.
+Do NOT weaken, undo, or average out the facial retouching from PASS 2.
+Do NOT return to a more ordinary or less-polished face.
 
 CLOTHING:
 - ${clothing}
-- perfectly clean fit
+- perfect clean fit
 - symmetrical collar and lapels
-- remove wrinkles and compositing artifacts
+- remove wrinkles
+- realistic fabric texture
 - realistic neck-to-collar shadows
-
-LIGHTING:
-- premium Korean portrait studio beauty lighting
-- large soft key light slightly above camera level
-- soft frontal fill
-- subtle rim light
-- bright clean facial center with controlled dimensional shadows
-- not flat passport lighting
+- no visible compositing artifacts
 
 BACKGROUND:
 - ${background}
 - smooth seamless low-saturation studio background
 - subtle radial brightness behind the head
-- no objects, text, patterns or scenery
-- do not use a vivid sky-blue background
+- no objects, no text, no patterns, no scenery
+- do not use vivid sky blue
+
+STUDIO LIGHTING:
+- preserve the premium facial beauty lighting from PASS 2
+- add subtle rim light for hair/background separation
+- keep the face bright, dimensional, and polished
+- avoid flattening the face during the clothing/background edit
 
 COMPOSITION:
 - vertical 3:4 professional ID portrait
 - perfectly front-facing
-- centered face
+- face centered
+- eyes level with camera
 - shoulders visible
 - balanced headroom
+- stable near-symmetrical composition
+
+FINAL QUALITY:
+- premium Korean portrait studio
+- actor-agency profile / executive portrait / high-end employment photo finish
+- face remains strongly retouched and polished
+- sharp eyes, eyebrows, and hair
+- smooth refined skin with fine realistic texture
+- no AI artifacts
+- no waxy skin
+- no over-HDR
+- no distorted ears, eyes, teeth, collar, or lapels
 
 FINAL PRIORITY:
-Do not interpret identity preservation as conservative retouching.
-The visual difference between pass 1 and the final image must be obvious.
-The result should look like the same person after professional grooming, hair styling, wardrobe preparation, premium studio lighting, and extensive manual Photoshop retouching.
+This pass is for clothing, background, composition, and finishing ONLY.
+The facial polish achieved in PASS 2 must be retained or improved, never reduced.
 `;
 }
 
