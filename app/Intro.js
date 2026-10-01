@@ -12,6 +12,8 @@ export default function Intro() {
   if (!open) return null;
 
   const start = () => {
+    // 음성 안내 시작 신호 (브라우저는 첫 클릭 이후에만 소리를 낼 수 있음)
+    window.dispatchEvent(new Event('zain-intro-start'));
     setClosing(true);
     setTimeout(() => setOpen(false), 450);
   };
