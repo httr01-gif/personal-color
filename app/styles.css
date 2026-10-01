@@ -1,0 +1,83 @@
+:root {
+  --ink: #10213a;
+  --muted: #637083;
+  --line: #dbe3ec;
+  --surface: #ffffff;
+  --bg: #eef4f9;
+  --blue: #2457ff;
+  --blue2: #6a83ff;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: Arial, "Noto Sans KR", sans-serif; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+.shell { max-width: 1180px; margin: 0 auto; padding: 34px 24px 60px; }
+.hero { display: flex; justify-content: space-between; align-items: flex-start; gap: 30px; margin-bottom: 24px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; font-weight: 800; color: #5272a4; }
+h1 { margin: 8px 0 10px; font-size: clamp(30px, 4vw, 52px); line-height: 1.05; letter-spacing: -.04em; }
+.hero p { margin: 0; max-width: 760px; color: var(--muted); line-height: 1.7; }
+.badge { background: #0f2240; color: white; border-radius: 999px; padding: 10px 15px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.panel, .resultPanel { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 18px 40px rgba(32, 61, 96, .08); }
+.panel { padding: 24px; }
+h2 { font-size: 20px; margin: 0 0 8px; }
+h3 { font-size: 14px; margin: 18px 0 8px; color: #43526a; }
+.hint { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.button { border: 0; border-radius: 12px; padding: 11px 16px; background: #173867; color: white; font-weight: 800; }
+.button.secondary { background: #e9eff7; color: #263f62; }
+.button.accent { background: var(--blue); }
+.button:disabled, .generate:disabled { opacity: .45; cursor: not-allowed; }
+.cameraBox { margin-top: 14px; border-radius: 18px; overflow: hidden; background: #101820; }
+.cameraBox video { display: block; width: 100%; max-height: 360px; object-fit: cover; transform: scaleX(-1); }
+.cameraActions { display: flex; gap: 8px; padding: 12px; background: #101820; }
+.thumbGrid { margin-top: 16px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.thumb { aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; position: relative; background: #edf2f7; border: 1px solid var(--line); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb span { position: absolute; left: 7px; bottom: 7px; width: 24px; height: 24px; border-radius: 50%; background: rgba(11, 27, 48, .8); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 800; }
+.thumb button { position: absolute; right: 6px; top: 6px; width: 25px; height: 25px; border-radius: 50%; border: 0; background: rgba(255,255,255,.88); color: #17253b; font-size: 19px; line-height: 1; }
+.thumb.empty { display: grid; place-items: center; color: #afbac8; font-size: 28px; border-style: dashed; }
+.counter { margin-top: 8px; text-align: right; font-size: 12px; color: var(--muted); }
+.segmented { display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.segmented button { flex: 1; border: 0; background: #fff; padding: 10px 8px; color: #58667a; font-weight: 700; border-right: 1px solid var(--line); }
+.segmented button:last-child { border-right: 0; }
+.segmented button.active { background: #112e58; color: white; }
+.outfitGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.outfit { min-height: 64px; border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 9px; display: flex; align-items: center; gap: 8px; text-align: left; font-size: 12px; color: #31425b; font-weight: 700; }
+.outfit.selected { border-color: var(--blue); box-shadow: inset 0 0 0 2px rgba(36,87,255,.15); background: #f6f8ff; }
+.swatch { width: 22px; height: 34px; border-radius: 7px; background: #172033; flex: 0 0 auto; box-shadow: inset 0 0 0 1px rgba(255,255,255,.3); }
+.swatch.gray_suit,.swatch.female_gray_suit,.swatch.knit_gray { background: #686d76; }
+.swatch.navy_suit,.swatch.female_navy_suit,.swatch.navy_shirt,.swatch.knit_navy { background: #1b2e54; }
+.swatch.white_shirt,.swatch.blouse_white,.swatch.cardigan { background: #f7f7f2; border: 1px solid #ddd; }
+.swatch.blue_shirt,.swatch.blouse_blue { background: #9cc2df; }
+.swatch.black_shirt,.swatch.black_suit,.swatch.female_black_suit { background: #17191f; }
+.swatch.oxford { background: linear-gradient(90deg,#dbe7f1 0 45%,#fff 45% 55%,#dbe7f1 55%); }
+.mt { margin-top: 24px; }
+.generate { width: 100%; margin-top: 20px; border: 0; border-radius: 14px; padding: 15px 16px; background: linear-gradient(135deg,#173a6d,#2457ff); color: white; font-size: 16px; font-weight: 900; }
+.generate.compact { max-width: 260px; }
+.error { margin-top: 12px; padding: 11px 12px; border-radius: 10px; background: #fff0f0; color: #9b2525; font-size: 13px; }
+.privacy { margin: 14px 0 0; font-size: 11px; color: #7e8898; line-height: 1.5; }
+.resultPanel { margin-top: 20px; padding: 22px; display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 24px; }
+.resultImage { background: #e8edf3; border-radius: 18px; overflow: hidden; }
+.resultImage img { display: block; width: 100%; aspect-ratio: 3/4; object-fit: cover; }
+.resultTools p { color: var(--muted); }
+.printCounts { max-width: 460px; }
+.print-sheet { display: none; }
+@media (max-width: 850px) {
+  .workspace, .resultPanel { grid-template-columns: 1fr; }
+  .outfitGrid { grid-template-columns: repeat(2, 1fr); }
+  .hero { flex-direction: column; }
+}
+
+@page { size: 10cm 15cm; margin: 0; }
+@media print {
+  html, body { width: 10cm; height: 15cm; background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .no-print { display: none !important; }
+  .shell { width: 10cm; height: 15cm; padding: 0; margin: 0; max-width: none; }
+  .print-sheet { display: grid !important; width: 10cm; height: 15cm; align-content: center; justify-content: center; grid-template-columns: repeat(3, 3cm); grid-auto-rows: 4cm; column-gap: 0; row-gap: 0; overflow: hidden; }
+  .print-sheet img { width: 3cm; height: 4cm; object-fit: cover; display: block; }
+  .print-sheet.count-1 { grid-template-columns: 3cm; grid-template-rows: 4cm; }
+  .print-sheet.count-4 { grid-template-columns: repeat(2, 3cm); grid-template-rows: repeat(2, 4cm); gap: .2cm; }
+  .print-sheet.count-6 { grid-template-columns: repeat(3, 3cm); grid-template-rows: repeat(2, 4cm); row-gap: .2cm; }
+  .print-sheet.count-8, .print-sheet.count-9 { grid-template-columns: repeat(3, 3cm); grid-template-rows: repeat(3, 4cm); }
+}
