@@ -1,4 +1,4 @@
-import { buildFaceBasePrompt, buildFinalPrompt, buildSecondPassPrompt } from '../../lib/prompts';
+import { buildFaceBasePrompt, buildFinalPrompt, buildSecondPassPrompt, buildThirdPassPrompt } from '../../lib/prompts';
 import { errorResponse, getClient, httpError, imageModel, readImages } from '../../lib/server';
 
 export const runtime = 'nodejs';
@@ -66,7 +66,7 @@ async function runImageTool(client, { responseModel, imageModelName, prompt, inp
   };
 }
 
-async function generateTwoPass(client, uploadables, formValues, imageModelName) {
+async function generateThreePass(client, uploadables, formValues, imageModelName) {
   const responseModel = process.env.OPENAI_RESPONSE_MODEL || 'gpt-6-astra';
   const inputImages = await Promise.all(uploadables.map((file) => toDataUrl(file)));
 
@@ -79,7 +79,7 @@ async function generateTwoPass(client, uploadables, formValues, imageModelName) 
     inputImages
   });
 
-  // 2차: 최종 하이엔드 리터칭
+  // 2차: 얼굴 전용 하이엔드 리터칭
   const secondPrompt = buildSecondPassPrompt(formValues);
   const pass2 = await runImageTool(client, {
     responseModel,
@@ -88,10 +88,19 @@ async function generateTwoPass(client, uploadables, formValues, imageModelName) 
     previousResponseId: pass1.responseId
   });
 
+  // 3차: 의상, 배경, 최종 구도 및 마감
+  const thirdPrompt = buildThirdPassPrompt(formValues);
+  const pass3 = await runImageTool(client, {
+    responseModel,
+    imageModelName,
+    prompt: thirdPrompt,
+    previousResponseId: pass2.responseId
+  });
+
   return {
-    b64: pass2.b64,
-    responseModel: pass2.model,
-    pipeline: 'responses-two-pass'
+    b64: pass3.b64,
+    responseModel: pass3.model,
+    pipeline: 'responses-three-pass'
   };
 }
 
@@ -139,9 +148,9 @@ export async function POST(request) {
 
     let generated;
     try {
-      generated = await generateTwoPass(client, uploadables, formValues, model);
+      generated = await generateThreePass(client, uploadables, formValues, model);
     } catch (responsesError) {
-      console.error('Two-pass Responses generation failed; falling back to Images API.', responsesError);
+      console.error('Three-pass Responses generation failed; falling back to Images API.', responsesError);
       generated = await generateFallback(client, uploadables, formValues, model);
     }
 
