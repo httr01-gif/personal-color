@@ -1,14 +1,18 @@
-import './styles.css';
+import "./styles.css";
+import Intro from "./Intro";
 
 export const metadata = {
-  title: 'AI 증명사진 스튜디오',
-  description: '여러 장의 사진을 참고해 단정한 증명사진을 생성하고 10×15cm 용지에 출력합니다.'
+  title: "자인사진관 | AI 기반 나의 퍼스널 컬러 찾기",
+  description: "AI로 나에게 어울리는 색과 면접 복장을 찾아보는 프로그램",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <Intro />
+        {children}
+      </body>
     </html>
   );
 }
