@@ -171,9 +171,9 @@ export default function Home() {
         <div>
           <div className="eyebrow">SPECIAL EDUCATION · AI PHOTO STUDIO</div>
           <h1>AI 증명사진 스튜디오</h1>
-          <p>6~8컷을 참고해 시선, 표정, 헤어, 자세를 정돈하고, 선택한 의상으로 나다운 증명사진을 만듭니다.</p>
+          <p>6~8컷을 참고해 시선, 표정, 헤어, 자세를 정돈하고, 선택한 의상으로 사진관 수준의 증명사진을 만듭니다.</p>
         </div>
-        <div className="badge">자연스러운 보정</div>
+        <div className="badge">강한 보정</div>
       </header>
 
       <section className="workspace no-print">
@@ -257,7 +257,7 @@ export default function Home() {
           <div className="resultImage"><img src={result} alt="생성된 증명사진" /></div>
           <div className="resultTools">
             <h2>완성 사진</h2>
-            <p>본인다운 모습을 살린 자연스러운 사진관 수준 보정입니다.</p>
+            <p>본인 특징은 유지하고 피부와 헤어를 강하게 정돈한 사진관 수준 보정입니다.</p>
             <div className="actions"><button className="button" onClick={downloadResult}>단독샷 저장</button></div>
             <h3>10 × 15cm 포토용지 출력</h3>
             <div className="segmented printCounts">
