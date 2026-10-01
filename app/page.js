@@ -27,7 +27,8 @@ function fileKey(file) {
   return `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`;
 }
 
-async function resizeImage(file, maxSide = 1600, quality = 0.88) {
+// 전송 용량 안정화: 긴 변 1280px, 품질 0.82 (8장 기준 약 2~3MB)
+async function resizeImage(file, maxSide = 1280, quality = 0.82) {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const width = Math.round(bitmap.width * scale);
@@ -170,9 +171,9 @@ export default function Home() {
         <div>
           <div className="eyebrow">SPECIAL EDUCATION · AI PHOTO STUDIO</div>
           <h1>AI 증명사진 스튜디오</h1>
-          <p>6~8컷을 참고해 시선·표정·헤어·자세를 정돈하고, 선택한 의상으로 고급 증명사진을 생성합니다.</p>
+          <p>6~8컷을 참고해 시선, 표정, 헤어, 자세를 정돈하고, 선택한 의상으로 나다운 증명사진을 만듭니다.</p>
         </div>
-        <div className="badge">강한 보정 고정</div>
+        <div className="badge">자연스러운 보정</div>
       </header>
 
       <section className="workspace no-print">
@@ -247,7 +248,7 @@ export default function Home() {
             {loading ? 'AI가 사진을 완성하는 중…' : 'AI 증명사진 만들기'}
           </button>
           {error && <div className="error">{error}</div>}
-          <p className="privacy">학생 사진은 보호자 동의 등 학교의 개인정보 처리 기준을 확인한 뒤 사용하세요. API 키는 브라우저에 노출되지 않고 서버 환경변수에서만 사용됩니다.</p>
+          <p className="privacy">학생 사진은 생성 과정에서 해외 AI 업체(OpenAI) 서버로 전송됩니다. 보호자 동의 등 학교의 개인정보 처리 기준을 확인한 뒤 사용하세요. API 키는 브라우저에 노출되지 않고 서버 환경변수에서만 사용됩니다.</p>
         </div>
       </section>
 
@@ -256,7 +257,7 @@ export default function Home() {
           <div className="resultImage"><img src={result} alt="생성된 증명사진" /></div>
           <div className="resultTools">
             <h2>완성 사진</h2>
-            <p>보정 강도는 고정된 강한 프로필 보정입니다.</p>
+            <p>본인다운 모습을 살린 자연스러운 사진관 수준 보정입니다.</p>
             <div className="actions"><button className="button" onClick={downloadResult}>단독샷 저장</button></div>
             <h3>10 × 15cm 포토용지 출력</h3>
             <div className="segmented printCounts">
