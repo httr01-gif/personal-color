@@ -1,4 +1,4 @@
-import { buildFinalPrompt } from '../../lib/prompts';
+import { buildFaceBasePrompt, buildFinalPrompt, buildSecondPassPrompt } from '../../lib/prompts';
 import { errorResponse, getClient, httpError, imageModel, readImages } from '../../lib/server';
 
 export const runtime = 'nodejs';
@@ -12,34 +12,34 @@ function toDataUrl(file) {
   });
 }
 
-async function generateWithResponses(client, uploadables, prompt, imageModelName) {
-  const imageInputs = await Promise.all(
-    uploadables.map(async (file) => ({
-      type: 'input_image',
-      image_url: await toDataUrl(file),
-      detail: 'auto'
-    }))
-  );
+async function runImageTool(client, { responseModel, imageModelName, prompt, inputImages = [], previousResponseId = null }) {
+  const content = [
+    {
+      type: 'input_text',
+      text: prompt
+    }
+  ];
 
-  const response = await client.responses.create({
-    model: process.env.OPENAI_RESPONSE_MODEL || 'gpt-6-astra',
+  for (const img of inputImages) {
+    content.push({
+      type: 'input_image',
+      image_url: img,
+      detail: 'auto'
+    });
+  }
+
+  const payload = {
+    model: responseModel,
     input: [
       {
         role: 'user',
-        content: [
-          {
-            type: 'input_text',
-            text: prompt
-          },
-          ...imageInputs
-        ]
+        content
       }
     ],
     tools: [
       {
         type: 'image_generation',
         model: imageModelName,
-        action: 'edit',
         size: '1152x1536',
         quality: 'max',
         output_format: 'jpeg',
@@ -47,19 +47,57 @@ async function generateWithResponses(client, uploadables, prompt, imageModelName
       }
     ],
     tool_choice: { type: 'image_generation' }
-  });
+  };
+
+  if (previousResponseId) {
+    payload.previous_response_id = previousResponseId;
+  }
+
+  const response = await client.responses.create(payload);
 
   const imageCall = response.output?.find((item) => item.type === 'image_generation_call');
   const b64 = imageCall?.result;
   if (!b64) throw httpError(502, 'Responses API에서 이미지 결과를 받지 못했습니다.');
 
   return {
+    responseId: response.id,
     b64,
-    responseModel: response.model || process.env.OPENAI_RESPONSE_MODEL || 'gpt-6-astra'
+    model: response.model || responseModel
   };
 }
 
-async function generateWithImagesApi(client, uploadables, prompt, imageModelName) {
+async function generateTwoPass(client, uploadables, formValues, imageModelName) {
+  const responseModel = process.env.OPENAI_RESPONSE_MODEL || 'gpt-6-astra';
+  const inputImages = await Promise.all(uploadables.map((file) => toDataUrl(file)));
+
+  // 1차: 얼굴 기준 이미지
+  const basePrompt = buildFaceBasePrompt(formValues);
+  const pass1 = await runImageTool(client, {
+    responseModel,
+    imageModelName,
+    prompt: basePrompt,
+    inputImages
+  });
+
+  // 2차: 최종 하이엔드 리터칭
+  const secondPrompt = buildSecondPassPrompt(formValues);
+  const pass2 = await runImageTool(client, {
+    responseModel,
+    imageModelName,
+    prompt: secondPrompt,
+    previousResponseId: pass1.responseId
+  });
+
+  return {
+    b64: pass2.b64,
+    responseModel: pass2.model,
+    pipeline: 'responses-two-pass'
+  };
+}
+
+async function generateFallback(client, uploadables, formValues, imageModelName) {
+  const prompt = buildFinalPrompt(formValues);
+
   const result = await client.images.edit({
     model: imageModelName,
     image: uploadables,
@@ -74,7 +112,11 @@ async function generateWithImagesApi(client, uploadables, prompt, imageModelName
   const b64 = result?.data?.[0]?.b64_json;
   if (!b64) throw httpError(502, 'Images API에서 이미지 결과를 받지 못했습니다.');
 
-  return { b64, responseModel: null };
+  return {
+    b64,
+    responseModel: null,
+    pipeline: 'images-edit-fallback'
+  };
 }
 
 export async function POST(request) {
@@ -83,7 +125,7 @@ export async function POST(request) {
     const form = await request.formData();
     const uploadables = await readImages(form);
 
-    const prompt = buildFinalPrompt({
+    const formValues = {
       gender: String(form.get('gender') || ''),
       outfitKind: String(form.get('outfitKind') || ''),
       suitColor: String(form.get('suitColor') || ''),
@@ -91,28 +133,23 @@ export async function POST(request) {
       colorKey: String(form.get('colorKey') || ''),
       expression: String(form.get('expression') || ''),
       background: String(form.get('background') || '')
-    });
+    };
 
     const model = imageModel();
 
     let generated;
     try {
-      // Responses API의 이미지 생성 도구는 입력 프롬프트를 자동 최적화하고
-      // 여러 참고 이미지를 함께 문맥으로 사용할 수 있어 최종 증명사진에 우선 사용한다.
-      generated = await generateWithResponses(client, uploadables, prompt, model);
+      generated = await generateTwoPass(client, uploadables, formValues, model);
     } catch (responsesError) {
-      console.error('Responses API image generation failed; falling back to Images API.', responsesError);
-
-      // 계정의 메인 모델 접근 권한이나 Responses 이미지 도구에 문제가 생기더라도
-      // 기존 Images API 편집 방식으로 계속 생성할 수 있도록 안전하게 폴백한다.
-      generated = await generateWithImagesApi(client, uploadables, prompt, model);
+      console.error('Two-pass Responses generation failed; falling back to Images API.', responsesError);
+      generated = await generateFallback(client, uploadables, formValues, model);
     }
 
     return Response.json({
       image: `data:image/jpeg;base64,${generated.b64}`,
       model,
       responseModel: generated.responseModel,
-      pipeline: generated.responseModel ? 'responses-image-generation' : 'images-edit-fallback'
+      pipeline: generated.pipeline
     });
   } catch (error) {
     return errorResponse(error);
