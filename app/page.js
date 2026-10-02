@@ -14,7 +14,7 @@ const STEP_TITLES = {
   outfit: '옷 종류',
   expression: '표정',
   background: '배경색',
-  result: '나의 증명사진'
+  result: '나의 프리미엄 프로필'
 };
 const PRINT_COUNTS = [1, 4, 6, 8, 9];
 
@@ -164,7 +164,7 @@ export default function Home() {
       case 'expression': return '어떤 얼굴로 사진을 찍을까요? 웃는 얼굴과 차분한 얼굴 중에서 골라 주세요.';
       case 'background': return '사진 배경 색을 골라 주세요.';
       case 'result':
-        return result ? '나의 증명사진이 완성됐어요. 저장하거나 인쇄할 수 있어요.' : '이제 나의 증명사진을 만들어요. 사진 만들기 버튼을 눌러 주세요.';
+        return result ? '나의 프리미엄 프로필이 완성됐어요. 저장하거나 인쇄할 수 있어요.' : '이제 나의 프리미엄 프로필 사진을 만들어요. 사진 만들기 버튼을 눌러 주세요.';
       default: return '';
     }
   }
@@ -374,7 +374,7 @@ export default function Home() {
     setError('');
     setLoading(true);
     setResult('');
-    speak('나의 증명사진을 만들고 있어요. 조금만 기다려 주세요.');
+    speak('프리미엄 프로필 사진을 만들고 있어요. 조금만 기다려 주세요.');
     try {
       const fd = new FormData();
       for (const item of images) fd.append('images', await resizeImage(item.file, 1280, 0.82));
@@ -389,7 +389,7 @@ export default function Home() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || '사진을 만들지 못했어요.');
       setResult(data.image);
-      speak('나의 증명사진이 완성됐어요. 저장하거나 인쇄할 수 있어요.');
+      speak('나의 프리미엄 프로필이 완성됐어요. 저장하거나 인쇄할 수 있어요.');
     } catch (e) {
       setError(e.message || '오류가 발생했습니다.');
       speak('사진을 만들지 못했어요. 선생님께 알려 주세요.');
@@ -402,7 +402,7 @@ export default function Home() {
     if (!result) return;
     const a = document.createElement('a');
     a.href = result;
-    a.download = `${displayName || '나의'}_증명사진.jpg`;
+    a.download = `${displayName || '나의'}_프리미엄프로필.jpg`;
     a.click();
   }
 
@@ -600,7 +600,7 @@ export default function Home() {
         return (
           <div className="result">
             <div className="result-photo">
-              {result ? <img src={result} alt={`${displayName}의 증명사진`} /> : (
+              {result ? <img src={result} alt={`${displayName}의 프리미엄 프로필 사진`} /> : (
                 <div className="photo-wait tall">
                   {loading ? <><span className="spinner" aria-hidden="true" /><p>사진을 만들고 있어요</p></> : <p>아직 사진이 없어요</p>}
                 </div>
@@ -619,7 +619,7 @@ export default function Home() {
               </button>
               {result && (
                 <>
-                  <p className="note">본인 특징은 유지하고 피부와 헤어를 강하게 정돈한 사진관 수준 보정입니다.</p>
+                  <p className="note">프리미엄 프로필 보정이 기본 적용됩니다. 얼굴, 피부, 눈, 헤어, 조명과 의상을 사진관 프로필 수준으로 강하게 완성합니다.</p>
                   <button type="button" className="btn btn-wide" onClick={downloadResult}>💾 사진 저장</button>
                   <h3>10 × 15cm 포토용지 인쇄</h3>
                   <div className="row">
