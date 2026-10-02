@@ -7,7 +7,7 @@ const COMMON_RULES = `
 - 눈, 코, 입의 기본적인 특징과 얼굴의 전체적인 인상은 유지한다.
 - 그러나 촬영 당시의 어색한 시선, 표정, 얼굴 비대칭, 흐릿한 턱선, 좋지 않은 조명, 자세 왜곡, 흐트러진 헤어는 적극적으로 개선할 수 있다.
 - 동일인 유지라는 조건을 최소한의 보정으로 해석하지 않는다.
-- 일반 증명사진보다 훨씬 적극적인 프리미엄 사진관 및 배우 프로필 수준의 미용 보정을 허용한다.
+- 일반 증명사진 수준은 목표가 아니다. 프리미엄 사진관 및 배우 프로필 수준의 강한 미용 보정을 기본값으로 적용한다.
 - 눈을 비정상적으로 크게 만들거나 전혀 다른 사람의 얼굴로 변경하지 않는다.
 - 장애 유무를 추정하거나 외형으로 표현하지 않는다. 촬영 순간의 제약을 보완해 본인의 단정하고 자신감 있는 모습을 구현한다.
 - 안경을 쓴 경우 안경의 전체적인 디자인은 유지하고 렌즈 반사와 왜곡을 적극적으로 제거한다.`;
@@ -73,10 +73,10 @@ export function buildFaceBasePrompt(sel) {
   return `
 Use all 2–3 uploaded reference photos as references of the SAME PERSON.
 
-Create one clean BASE PORTRAIT of this ${genderText}. This is pass 1 of a two-pass workflow.
+Create one premium BASE PORTRAIT of this ${genderText}. This is pass 1 of a premium three-pass workflow.
 
 TOP PRIORITY:
-Build the most stable, flattering, front-facing version of the same person's face before final styling.
+Build the most stable, flattering, camera-ready front-facing version of the same person's face as the foundation for a premium studio profile.
 
 IDENTITY:
 - Keep the person clearly recognizable.
@@ -98,10 +98,11 @@ HAIR:
 - Make the hair look prepared for a professional studio session.
 
 SKIN:
-- Apply only medium cleanup in pass 1.
-- Reduce obvious redness, blemishes and uneven tone.
-- Keep realistic skin texture.
-- Do not spend this pass on clothing color or final beauty effects.
+- Apply a clearly polished premium-studio cleanup already in pass 1.
+- Reduce redness, blemishes, uneven tone, under-eye darkness, and dullness.
+- Keep realistic fine skin texture.
+- Establish a clean, flattering, camera-ready face before the stronger beauty retouch in pass 2.
+- Do not spend this pass on final clothing color.
 
 BACKGROUND AND COMPOSITION:
 - neutral pale gray studio background
@@ -111,7 +112,7 @@ BACKGROUND AND COMPOSITION:
 - shoulders visible
 - balanced headroom
 
-The output of pass 1 should be the best clean FACE BASE for the same person.
+The output of pass 1 should already look like a polished premium studio FACE BASE for the same person.
 `;
 }
 
@@ -121,12 +122,12 @@ export function buildSecondPassPrompt(sel) {
   if (!expression) throw httpError(400, '표정을 선택해 주세요.');
 
   return `
-Edit the previously generated base portrait. This is PASS 2: FACE-ONLY HIGH-END RETOUCH.
+Edit the previously generated premium base portrait. This is PASS 2: FACE-ONLY MAXIMUM HIGH-END RETOUCH.
 
 ABSOLUTE PRIORITY:
 Spend nearly all visual attention on the FACE, EYES, SKIN, HAIR, EXPRESSION, and FACIAL LIGHTING.
 Do NOT focus on final clothing color or final background styling yet.
-Do NOT settle for ordinary ID-photo cleanup.
+Do NOT settle for ordinary ID-photo cleanup. Aim for premium Korean beauty-profile studio quality.
 
 IDENTITY:
 - Keep the same person clearly recognizable.
@@ -247,8 +248,9 @@ COMPOSITION:
 - stable near-symmetrical composition
 
 FINAL QUALITY:
-- premium Korean portrait studio
+- premium Korean beauty-profile studio
 - actor-agency profile / executive portrait / high-end employment photo finish
+- polished enough to feel clearly beyond a standard ID photo
 - face remains strongly retouched and polished
 - sharp eyes, eyebrows, and hair
 - smooth refined skin with fine realistic texture
@@ -274,8 +276,8 @@ export function buildFinalPrompt(sel) {
   const genderText = sel.gender === 'female' ? '여학생' : '남학생';
 
   return `
-당신은 한국 프리미엄 사진관의 증명사진 리터칭 및 의상 합성 전문가다.
-입력된 2~3장의 동일 인물 사진을 모두 참고해, 학생의 고유한 정체성은 유지하면서 촬영 순간의 제약을 적극적으로 보완한 고급 증명사진 1장을 생성한다.
+당신은 한국 프리미엄 프로필 사진관의 하이엔드 인물 리터칭 및 의상 합성 전문가다.
+입력된 2~3장의 동일 인물 사진을 모두 참고해, 학생의 고유한 정체성은 유지하면서 촬영 순간의 제약을 적극적으로 보완한 프리미엄 프로필 사진 1장을 생성한다.
 
 [핵심 원칙]
 ${COMMON_RULES}
@@ -318,7 +320,7 @@ ${COMMON_RULES}
 - 밝은 하늘색 배경처럼 강한 파란색은 사용하지 않는다.
 
 [구도]
-- 세로 3:4 전문 증명사진.
+- 세로 3:4 프리미엄 프로필 사진.
 - 완전한 정면 상반신.
 - 눈높이는 카메라와 동일.
 - 얼굴은 중앙에 배치한다.
@@ -327,7 +329,7 @@ ${COMMON_RULES}
 - 전체 구도는 안정적이고 좌우 균형이 잘 맞아야 한다.
 
 [강한 리터칭: 최우선 적용]
-- 일반 증명사진 보정이 아니라 한국 프리미엄 사진관, 배우 프로필, 취업용 고급 프로필 수준의 강한 상업용 리터칭을 적용한다.
+- 한국 프리미엄 사진관, 배우 프로필, 취업용 고급 프로필 수준의 강한 상업용 리터칭을 기본값으로 적용한다.
 - 보정 전후 차이가 육안으로 확실하게 느껴져야 한다.
 - 동일인으로 알아볼 수 있는 핵심 특징은 유지하되, 더 단정하고 균형 잡히고 사진발이 좋은 모습으로 적극적으로 정돈한다.
 
