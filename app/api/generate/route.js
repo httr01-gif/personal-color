@@ -100,7 +100,7 @@ async function generateThreePass(client, uploadables, formValues, imageModelName
   return {
     b64: pass3.b64,
     responseModel: pass3.model,
-    pipeline: 'responses-three-pass'
+    pipeline: 'responses-three-pass-premium'
   };
 }
 
@@ -150,7 +150,7 @@ export async function POST(request) {
     try {
       generated = await generateThreePass(client, uploadables, formValues, model);
     } catch (responsesError) {
-      console.error('Three-pass Responses generation failed; falling back to Images API.', responsesError);
+      console.error('Premium three-pass Responses generation failed; falling back to Images API.', responsesError);
       generated = await generateFallback(client, uploadables, formValues, model);
     }
 
