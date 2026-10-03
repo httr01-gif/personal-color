@@ -4,6 +4,7 @@ import { errorResponse, getClient, httpError, imageModel, readImages, responseMo
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
+// 1회 통합 생성: 헤어 정돈, 밝은 얼굴, 의상, 배경을 한 번에 완성
 async function generateSinglePass(client, uploadables, formValues, imageModelName) {
   const responseModelName = responseModel();
   const prompt = buildFinalPrompt(formValues);
@@ -33,6 +34,7 @@ async function generateSinglePass(client, uploadables, formValues, imageModelNam
   return { b64, responseModel: response.model || responseModelName, pipeline: 'responses-single-pass-studio' };
 }
 
+// 대체 방식: Responses 경로가 실패했을 때 같은 프롬프트로 이미지 편집 API 사용
 async function generateFallback(client, uploadables, formValues, imageModelName) {
   const prompt = buildFinalPrompt(formValues);
 
@@ -70,6 +72,7 @@ export async function POST(request) {
       background: String(form.get('background') || '')
     };
 
+    // 선택값 오류는 생성 전에 바로 알린다
     buildFinalPrompt(formValues);
 
     const model = imageModel();

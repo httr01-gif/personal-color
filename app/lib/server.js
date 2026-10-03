@@ -26,7 +26,13 @@ export function visionModel() {
 
 // 얼굴 유지 옵션(input_fidelity)을 먼저 넣어 요청하고,
 // 모델이 이 옵션을 지원하지 않아 거절하면 옵션을 빼고 한 번 더 요청한다.
+// OPENAI_INPUT_FIDELITY: high(기본, 얼굴 유지 강함) / low(보정, 헤어 정돈이 더 강하게 들어감)
+export function fidelityEnabled() {
+  return String(process.env.OPENAI_INPUT_FIDELITY || 'high').toLowerCase() !== 'low';
+}
+
 export async function withFidelity(run) {
+  if (!fidelityEnabled()) return run(false);
   try {
     return await run(true);
   } catch (error) {
