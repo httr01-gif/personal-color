@@ -50,8 +50,8 @@ const BACKGROUNDS = [
 // 나의 계절에 어울리는 배경
 const SEASON_BACKGROUND = { spring: 'peach', summer: 'pink', autumn: 'beige', winter: 'lavender' };
 const PIPELINE_LABELS = {
-  'responses-three-pass-premium': '3단계 고보정',
-  'images-edit-fallback': '1회 생성(대체 방식)'
+  'responses-single-pass-studio': '1회 통합 생성',
+  'images-edit-fallback-single-pass': '1회 생성(대체 방식)'
 };
 
 function fileKey(file) {
@@ -68,6 +68,16 @@ async function resizeImage(file, maxSide, quality) {
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
   bitmap.close?.();
   return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+
+function hexToRgba(hex, alpha = 1) {
+  const clean = String(hex || '').replace('#', '');
+  if (clean.length !== 6) return `rgba(255,255,255,${alpha})`;
+  const value = parseInt(clean, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function Choice({ selected, onClick, children, className = '' }) {
@@ -135,7 +145,7 @@ export default function Home() {
     synth.speak(u);
   }
 
-  const compareLoading = compareItems.some((x) => x.status === 'loading');
+  const compareLoading = diagnosis.status === 'loading';
   const chosenItem = compareItems.find((x) => x.id === chosenCompare);
   const chosenSeason = compareSkipped ? null : chosenItem?.season || null;
   const favoriteInfo = FAVORITES.find((f) => f.key === favorite);
@@ -283,21 +293,6 @@ export default function Home() {
     setCompareItems((prev) => prev.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   }
 
-  async function fetchCompare(item) {
-    updateItem(item.id, { status: 'loading', error: '' });
-    try {
-      const fd = new FormData();
-      compareFilesRef.current.forEach((f) => fd.append('images', f));
-      fd.append('colorKey', item.colorKey);
-      const res = await fetch('/api/compare', { method: 'POST', body: fd });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || '사진을 만들지 못했어요.');
-      updateItem(item.id, { status: 'done', image: data.image });
-    } catch (e) {
-      updateItem(item.id, { status: 'error', error: e.message || '사진을 만들지 못했어요.' });
-    }
-  }
-
   async function runDiagnose(runSig) {
     setDiagnosis({ status: 'loading' });
     try {
@@ -317,14 +312,16 @@ export default function Home() {
     compareRunRef.current = sig;
     const list = SEASON_ORDER.map((s) => ({ id: s, season: s, colorKey: SEASONS[s].compare }));
     if (favoriteInfo) list.push({ id: 'fav', season: favoriteInfo.season, colorKey: favoriteInfo.key, isFavorite: true });
-    setCompareItems(list.map((x) => ({ ...x, status: 'loading', image: '', error: '' })));
+
+    const baseImage = images[0]?.url || '';
+    setCompareItems(list.map((x) => ({ ...x, status: 'done', image: baseImage, error: '' })));
     setCompareSig(sig);
     setChosenCompare(null);
     setCompareSkipped(false);
     setFinalColor(null);
     compareFilesRef.current = await Promise.all(images.map((i) => resizeImage(i.file, 1024, 0.8)));
-    await Promise.all([runDiagnose(sig), ...list.map((item) => fetchCompare(item))]);
-    if (STEPS[stepRef.current] === 'compare') speak('사진이 준비됐어요. 어떤 색 옷이 제일 나다워요? 하나를 골라 주세요.');
+    await runDiagnose(sig);
+    if (STEPS[stepRef.current] === 'compare') speak('같은 사진으로 옷 색만 비교해 볼게요. 마음에 드는 색을 하나 골라 주세요.');
   }
 
   useEffect(() => {
@@ -532,28 +529,20 @@ export default function Home() {
             <div className="grid grid-compare">
               {compareItems.map((item) => (
                 <div key={item.id} className="compare-cell">
-                  {item.status === 'done' ? (
-                    <Choice selected={chosenCompare === item.id} onClick={() => chooseCompare(item)} className="choice-photo">
-                      <img src={item.image} alt={`${COLORS[item.colorKey].label} 옷을 입은 내 사진`} />
-                      {diagnosis.status === 'done' && !item.isFavorite && diagnosis.season === item.season && <span className="ai-badge">⭐ AI 추천</span>}
-                      <span className="photo-label"><Swatch hex={COLORS[item.colorKey].hex} />{COLORS[item.colorKey].label}{item.isFavorite ? ' (좋아하는 색)' : ''}</span>
-                    </Choice>
-                  ) : item.status === 'error' ? (
-                    <div className="photo-wait">
-                      <p>만들지 못했어요</p>
-                      <button type="button" className="btn btn-ghost btn-small" onClick={() => fetchCompare(item)}>다시 만들기</button>
+                  <Choice selected={chosenCompare === item.id} onClick={() => chooseCompare(item)} className="choice-photo">
+                    <div className="preview-portrait" style={{ background: `linear-gradient(180deg, #ffffff 0%, ${hexToRgba(COLORS[item.colorKey].hex, 0.12)} 100%)` }}>
+                      <img src={item.image} alt={`${COLORS[item.colorKey].label} 옷 색 비교 사진`} />
+                      <span className="preview-shirt" style={{ background: COLORS[item.colorKey].hex }} aria-hidden="true" />
                     </div>
-                  ) : (
-                    <div className="photo-wait">
-                      <span className="spinner" aria-hidden="true" />
-                      <p><Swatch hex={COLORS[item.colorKey].hex} />{COLORS[item.colorKey].label}</p>
-                    </div>
-                  )}
+                    {diagnosis.status === 'done' && !item.isFavorite && diagnosis.season === item.season && <span className="ai-badge">⭐ AI 추천</span>}
+                    <span className="photo-label"><Swatch hex={COLORS[item.colorKey].hex} />{COLORS[item.colorKey].label}{item.isFavorite ? ' (좋아하는 색)' : ''}</span>
+                    <small className="compare-caption">같은 얼굴로 옷 색만 비교해요</small>
+                  </Choice>
                 </div>
               ))}
             </div>
             <div className="row row-end">
-              <button type="button" className="btn btn-ghost btn-small" onClick={runCompare} disabled={compareLoading}>전부 다시 만들기</button>
+              <button type="button" className="btn btn-ghost btn-small" onClick={runCompare} disabled={compareLoading}>AI 추천 다시 보기</button>
               <button type="button" className="btn btn-ghost btn-small" onClick={skipCompare}>건너뛰기</button>
             </div>
           </div>
@@ -671,7 +660,7 @@ export default function Home() {
               </button>
               {result && (
                 <>
-                  <p className="note">사진관 취업사진 수준의 고보정(밝고 맑은 피부, 하이키 조명, 파스텔 배경)이 적용됩니다. 학생 본인과 닮지 않았다면 다시 만들기를 눌러 주세요.</p>
+                  <p className="note">원본 학생의 얼굴 특징을 최대한 유지하면서, 실제 사진관에서 다시 촬영한 듯한 자연스러운 스튜디오 프로필로 생성됩니다. 학생 본인과 충분히 닮지 않으면 다시 만들기를 눌러 주세요.</p>
                   {pipeline && <p className="note">생성 방식: {PIPELINE_LABELS[pipeline] || pipeline}</p>}
                   <button type="button" className="btn btn-wide" onClick={downloadResult}>💾 사진 저장</button>
                   <h3>10 × 15cm 포토용지 인쇄</h3>
