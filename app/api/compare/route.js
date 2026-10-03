@@ -1,5 +1,5 @@
 import { buildComparePrompt } from '../../lib/prompts';
-import { errorResponse, getClient, httpError, imageModel, readImages } from '../../lib/server';
+import { errorResponse, getClient, httpError, imageModel, readImages, withFidelity } from '../../lib/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -12,7 +12,7 @@ export async function POST(request) {
     const uploadables = await readImages(form);
     const prompt = buildComparePrompt(String(form.get('colorKey') || ''));
 
-    const result = await client.images.edit({
+    const result = await withFidelity((fidelity) => client.images.edit({
       model: imageModel(),
       image: uploadables,
       prompt,
@@ -20,8 +20,9 @@ export async function POST(request) {
       quality: 'medium',
       output_format: 'jpeg',
       output_compression: 80,
+      ...(fidelity ? { input_fidelity: 'high' } : {}),
       n: 1
-    });
+    }));
 
     const b64 = result?.data?.[0]?.b64_json;
     if (!b64) throw httpError(502, '비교 사진을 받지 못했습니다.');

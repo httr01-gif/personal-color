@@ -167,3 +167,15 @@ img { max-width: 100%; }
   .print-grid img { width: 30mm; height: 40mm; object-fit: cover; }
   .print-name { margin: 4mm 0 0; font-size: 10pt; }
 }
+
+/* AI 퍼스널 컬러 진단 */
+.ai-card { background: #fff8e8; border: 2px solid #f3d58a; border-radius: 18px; padding: 12px 16px; margin-bottom: 14px; text-align: center; }
+.ai-card.idle { display: none; }
+.ai-card.error { background: var(--soft); border-color: var(--line); color: var(--muted); }
+.ai-card p { margin: 2px 0; }
+.ai-title { font-size: 20px; }
+.ai-card .teacher { margin-top: 8px; text-align: left; font-size: 15px; color: var(--muted); }
+.ai-card .teacher summary { cursor: pointer; font-weight: 600; }
+.choice-photo { position: relative; }
+.ai-badge { position: absolute; top: 14px; left: 14px; background: #f6b400; color: #3a2a00; font-weight: 800; font-size: 15px; padding: 2px 10px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,0.18); }
+.spinner-sm { width: 18px !important; height: 18px !important; border-width: 3px !important; display: inline-block; vertical-align: -3px; margin: 0 6px 0 0 !important; }

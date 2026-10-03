@@ -34,14 +34,25 @@ const CASUAL_ITEMS = [
   { id: 'knit', label: '니트', icon: '🧶' }
 ];
 const EXPRESSIONS = [
+  { id: 'bigsmile', label: '활짝 웃는 얼굴', icon: '😁' },
   { id: 'smile', label: '웃는 얼굴', icon: '😊' },
   { id: 'calm', label: '차분한 얼굴', icon: '🙂' }
 ];
 const BACKGROUNDS = [
+  { id: 'peach', label: '피치', hex: 'linear-gradient(180deg,#fde7dc,#f6cdbb)' },
+  { id: 'pink', label: '분홍', hex: 'linear-gradient(180deg,#fbe8ec,#ecc6cf)' },
+  { id: 'lavender', label: '라벤더', hex: 'linear-gradient(180deg,#efeaf8,#d6cbec)' },
+  { id: 'beige', label: '베이지', hex: 'linear-gradient(180deg,#f6eee2,#e3d3bb)' },
   { id: 'white', label: '흰색', hex: '#ffffff' },
   { id: 'blue', label: '하늘색', hex: '#dcebf9' },
   { id: 'gray', label: '회색', hex: '#e4e6ea' }
 ];
+// 나의 계절에 어울리는 배경
+const SEASON_BACKGROUND = { spring: 'peach', summer: 'pink', autumn: 'beige', winter: 'lavender' };
+const PIPELINE_LABELS = {
+  'responses-three-pass-premium': '3단계 고보정',
+  'images-edit-fallback': '1회 생성(대체 방식)'
+};
 
 function fileKey(file) {
   return `${file.name}-${file.size}-${file.lastModified}-${Math.random()}`;
@@ -88,6 +99,8 @@ export default function Home() {
   const [expression, setExpression] = useState(null);
   const [background, setBackground] = useState(null);
   const [result, setResult] = useState('');
+  const [pipeline, setPipeline] = useState('');
+  const [diagnosis, setDiagnosis] = useState({ status: 'idle' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [printCount, setPrintCount] = useState(9);
@@ -148,10 +161,12 @@ export default function Home() {
       case 'photos': return '같은 사람의 사진을 2~3장 찍어 주세요. 정면에 가깝고 얼굴이 잘 보이는 사진이 좋아요.';
       case 'gender': return '나는 남학생인가요, 여학생인가요? 골라 주세요.';
       case 'favorite': return '내가 좋아하는 색을 하나 골라 주세요.';
-      case 'compare':
+      case 'compare': {
+        const ai = diagnosis.status === 'done' ? `AI는 ${SEASONS[diagnosis.season].label} 색을 추천했어요. ` : '';
         return compareLoading
           ? '여러 색 옷을 입은 내 사진을 만들고 있어요. 조금만 기다려 주세요.'
-          : '어떤 색 옷이 제일 나다워요? 사진을 하나 골라 주세요.';
+          : `${ai}어떤 색 옷이 제일 나다워요? 사진을 하나 골라 주세요.`;
+      }
       case 'mycolor':
         return chosenSeason
           ? `${displayName} 님에게는 ${SEASONS[chosenSeason].desc}이 잘 어울려요. 마음에 드는 색을 하나 골라 주세요.`
@@ -161,8 +176,8 @@ export default function Home() {
         if (outfitSub === 'suitColor') return '정장 색을 골라 주세요.';
         if (outfitSub === 'casual') return '남방과 니트 중에서 골라 주세요.';
         return '좋아요. 다음을 눌러 주세요.';
-      case 'expression': return '어떤 얼굴로 사진을 찍을까요? 웃는 얼굴과 차분한 얼굴 중에서 골라 주세요.';
-      case 'background': return '사진 배경 색을 골라 주세요.';
+      case 'expression': return '어떤 얼굴로 사진을 찍을까요? 활짝 웃는 얼굴, 웃는 얼굴, 차분한 얼굴 중에서 골라 주세요.';
+      case 'background': return chosenSeason ? `사진 배경 색을 골라 주세요. 별표는 ${SEASONS[chosenSeason].label}에 어울리는 배경이에요.` : '사진 배경 색을 골라 주세요.';
       case 'result':
         return result ? '나의 프리미엄 프로필이 완성됐어요. 저장하거나 인쇄할 수 있어요.' : '이제 나의 프리미엄 프로필 사진을 만들어요. 사진 만들기 버튼을 눌러 주세요.';
       default: return '';
@@ -283,6 +298,21 @@ export default function Home() {
     }
   }
 
+  async function runDiagnose(runSig) {
+    setDiagnosis({ status: 'loading' });
+    try {
+      const fd = new FormData();
+      compareFilesRef.current.forEach((f) => fd.append('images', f));
+      if (favorite) fd.append('favorite', favorite);
+      const res = await fetch('/api/diagnose', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || '진단하지 못했어요.');
+      if (compareRunRef.current === runSig) setDiagnosis({ status: 'done', ...data });
+    } catch (e) {
+      if (compareRunRef.current === runSig) setDiagnosis({ status: 'error', error: e.message });
+    }
+  }
+
   async function runCompare() {
     compareRunRef.current = sig;
     const list = SEASON_ORDER.map((s) => ({ id: s, season: s, colorKey: SEASONS[s].compare }));
@@ -293,7 +323,7 @@ export default function Home() {
     setCompareSkipped(false);
     setFinalColor(null);
     compareFilesRef.current = await Promise.all(images.map((i) => resizeImage(i.file, 1024, 0.8)));
-    await Promise.all(list.map((item) => fetchCompare(item)));
+    await Promise.all([runDiagnose(sig), ...list.map((item) => fetchCompare(item))]);
     if (STEPS[stepRef.current] === 'compare') speak('사진이 준비됐어요. 어떤 색 옷이 제일 나다워요? 하나를 골라 주세요.');
   }
 
@@ -389,6 +419,7 @@ export default function Home() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || '사진을 만들지 못했어요.');
       setResult(data.image);
+      setPipeline(data.pipeline || '');
       speak('나의 프리미엄 프로필이 완성됐어요. 저장하거나 인쇄할 수 있어요.');
     } catch (e) {
       setError(e.message || '오류가 발생했습니다.');
@@ -482,12 +513,29 @@ export default function Home() {
       case 'compare':
         return (
           <div>
+            <div className={`ai-card ${diagnosis.status}`}>
+              {diagnosis.status === 'loading' && <p><span className="spinner spinner-sm" aria-hidden="true" /> AI가 내 얼굴 색을 살펴보고 있어요</p>}
+              {diagnosis.status === 'done' && (
+                <>
+                  <p className="ai-title">⭐ AI 추천: <strong>{SEASONS[diagnosis.season].label}</strong> ({SEASONS[diagnosis.season].desc})</p>
+                  <p>{diagnosis.reason}</p>
+                  <details className="teacher">
+                    <summary>선생님 확인용</summary>
+                    <p>사진 분석: {SEASONS[diagnosis.photoSeason].label} / 좋아하는 색: {diagnosis.favoriteSeason ? SEASONS[diagnosis.favoriteSeason].label : '없음'} / 신뢰도: {{ low: '낮음', medium: '보통', high: '높음' }[diagnosis.confidence] || '-'}</p>
+                    <p>점수(사진+좋아하는 색): {SEASON_ORDER.map((x) => `${SEASONS[x].label} ${diagnosis.finalScores?.[x] ?? '-'}`).join(', ')}</p>
+                    <p>{diagnosis.teacherNote}</p>
+                  </details>
+                </>
+              )}
+              {diagnosis.status === 'error' && <p>AI 추천을 받지 못했어요. 사진을 보고 직접 골라 주세요.</p>}
+            </div>
             <div className="grid grid-compare">
               {compareItems.map((item) => (
                 <div key={item.id} className="compare-cell">
                   {item.status === 'done' ? (
                     <Choice selected={chosenCompare === item.id} onClick={() => chooseCompare(item)} className="choice-photo">
                       <img src={item.image} alt={`${COLORS[item.colorKey].label} 옷을 입은 내 사진`} />
+                      {diagnosis.status === 'done' && !item.isFavorite && diagnosis.season === item.season && <span className="ai-badge">⭐ AI 추천</span>}
                       <span className="photo-label"><Swatch hex={COLORS[item.colorKey].hex} />{COLORS[item.colorKey].label}{item.isFavorite ? ' (좋아하는 색)' : ''}</span>
                     </Choice>
                   ) : item.status === 'error' ? (
@@ -518,6 +566,9 @@ export default function Home() {
               <div className="season-card">
                 <span className="season-name">{SEASONS[chosenSeason].label}</span>
                 <p>{displayName} 님에게는 <strong>{SEASONS[chosenSeason].desc}</strong>이 잘 어울려요.</p>
+                {diagnosis.status === 'done' && diagnosis.season !== chosenSeason && (
+                  <p className="hint">AI 추천은 {SEASONS[diagnosis.season].label}이었지만, 내가 고른 색으로 만들어요.</p>
+                )}
               </div>
             ) : (
               <p className="hint">비교 사진을 건너뛰었어요. 기본 색 중에서 골라요.</p>
@@ -576,7 +627,7 @@ export default function Home() {
 
       case 'expression':
         return (
-          <div className="grid grid-2">
+          <div className="grid grid-3">
             {EXPRESSIONS.map((x) => (
               <Choice key={x.id} selected={expression === x.id} onClick={() => pick(setExpression, x.id, x.label)} className="choice-big">
                 <span className="icon">{x.icon}</span>{x.label}
@@ -587,10 +638,11 @@ export default function Home() {
 
       case 'background':
         return (
-          <div className="grid grid-3">
+          <div className="grid grid-4">
             {BACKGROUNDS.map((b) => (
               <Choice key={b.id} selected={background === b.id} onClick={() => pick(setBackground, b.id, b.label)} className="choice-color choice-color-lg">
                 <Swatch hex={b.hex} />{b.label}
+                {chosenSeason && SEASON_BACKGROUND[chosenSeason] === b.id && <small>⭐ 나의 계절</small>}
               </Choice>
             ))}
           </div>
@@ -619,7 +671,8 @@ export default function Home() {
               </button>
               {result && (
                 <>
-                  <p className="note">프리미엄 프로필 보정이 기본 적용됩니다. 얼굴, 피부, 눈, 헤어, 조명과 의상을 사진관 프로필 수준으로 강하게 완성합니다.</p>
+                  <p className="note">사진관 취업사진 수준의 고보정(밝고 맑은 피부, 하이키 조명, 파스텔 배경)이 적용됩니다. 학생 본인과 닮지 않았다면 다시 만들기를 눌러 주세요.</p>
+                  {pipeline && <p className="note">생성 방식: {PIPELINE_LABELS[pipeline] || pipeline}</p>}
                   <button type="button" className="btn btn-wide" onClick={downloadResult}>💾 사진 저장</button>
                   <h3>10 × 15cm 포토용지 인쇄</h3>
                   <div className="row">

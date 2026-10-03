@@ -15,10 +15,16 @@ const COMMON_RULES = `
 const BACKGROUNDS = {
   white: '깨끗한 흰색 스튜디오 배경',
   blue: '채도가 낮은 아주 옅은 블루그레이 스튜디오 배경',
-  gray: '중성적인 아주 연한 쿨그레이 스튜디오 배경'
+  gray: '중성적인 아주 연한 쿨그레이 스튜디오 배경',
+  // 퍼스널 컬러 연계 파스텔 그라데이션 (한국 사진관 취업사진 스타일)
+  peach: '부드러운 파스텔 피치 그라데이션 스튜디오 배경 (soft pastel peach gradient)',
+  pink: '부드러운 파스텔 로즈핑크 그라데이션 스튜디오 배경 (soft pastel rose-pink gradient)',
+  lavender: '부드러운 파스텔 라벤더 그라데이션 스튜디오 배경 (soft pastel lavender gradient)',
+  beige: '부드러운 웜 베이지 그라데이션 스튜디오 배경 (soft warm beige gradient)'
 };
 
 const EXPRESSIONS = {
+  bigsmile: '활짝 웃는 얼굴: 윗니가 가지런히 보이는 밝고 환한 미소, 입꼬리가 좌우 대칭으로 올라감, 깨끗하고 자연스러운 치아',
   smile: '웃는 얼굴: 입을 다문 자연스럽고 자신감 있는 미소',
   calm: '차분한 얼굴: 편안하고 자신감 있는 중립 표정'
 };
@@ -127,7 +133,7 @@ Edit the previously generated premium base portrait. This is PASS 2: FACE-ONLY M
 ABSOLUTE PRIORITY:
 Spend nearly all visual attention on the FACE, EYES, SKIN, HAIR, EXPRESSION, and FACIAL LIGHTING.
 Do NOT focus on final clothing color or final background styling yet.
-Do NOT settle for ordinary ID-photo cleanup. Aim for premium Korean beauty-profile studio quality.
+Do NOT settle for ordinary ID-photo cleanup. Aim for the heavily retouched look of a premium Korean photo studio (사진관) job-application photo: bright, clean, luminous, flawless.
 
 IDENTITY:
 - Keep the same person clearly recognizable.
@@ -141,25 +147,26 @@ EXPRESSION AND GAZE:
 - Expression: ${expression}
 - Make the face look calm, alert, confident, and professionally photographed.
 
-SKIN — VERY STRONG BEAUTY RETOUCH:
+SKIN — VERY STRONG KOREAN STUDIO BEAUTY RETOUCH:
+- target look: bright, clear, porcelain-like skin with a soft, healthy, luminous glow
+- remove virtually all blemishes, spots, redness, and visible pores
+- even out skin tone completely across the whole face and neck
 - reduce under-eye darkness and eye-bag shadows by about 80–90%
 - reduce nasolabial and mouth-area shadows by about 70–80%
 - reduce beard shadow and gray/blue tone around the mouth and chin by about 75–85%
 - strongly reduce redness, blemishes, uneven tone, rough texture, and visible pores
 - smooth tonal transitions across forehead, cheeks, nose, and chin
 - brighten the central face visibly
-- keep a fine realistic skin texture so the skin does not look plastic or waxy
+- keep only a very fine realistic micro-texture so the skin does not look plastic or waxy
 - remove the tired, dull, or heavy look from the face
+- add a natural healthy flush to cheeks and lips
 
-DODGE & BURN — STRONG:
-- brighten forehead center
-- create a clean narrow highlight along the nose bridge
-- brighten upper cheekbones
-- brighten the under-eye triangle clearly
-- add soft controlled shadow beneath cheekbones
-- define the jawline with a clean but realistic shadow below the jaw
-- slightly darken the outer facial perimeter compared with the center
-- improve facial dimensionality through light and shadow without making the person unrecognizable
+SOFT HIGHLIGHTS (KEEP CONTRAST LOW):
+- brighten forehead center, nose bridge, upper cheekbones, and the under-eye triangle
+- keep facial shadows very light and soft; do NOT add dark contour shadows
+- keep the jawline clean and neat with only a very faint, soft definition
+- do NOT darken the outer facial perimeter
+- the face should look bright, fresh, and evenly lit, not dramatic
 
 EYES — STRONG:
 - preserve natural eye shape
@@ -181,12 +188,12 @@ HAIR — STRONG PROFESSIONAL RESTYLING:
 - make the hair look professionally styled immediately before a premium studio session
 
 FACE-ONLY LIGHTING:
-- premium Korean beauty-studio lighting
-- large soft key light slightly above camera level
-- soft frontal fill
-- subtle sculpting light around cheekbones and jaw
+- high-key Korean photo-studio beauty lighting
+- large soft frontal key light slightly above camera level, wrapping the whole face
+- strong soft fill so there are almost no shadows on the face
 - gentle separation light on hair
-- avoid flat passport lighting
+- bright, clean, low-contrast result like a premium 사진관 ID photo
+- avoid dramatic, moody, or cinematic side lighting
 
 COMPOSITION:
 - keep the face large enough in frame for detailed retouching
@@ -198,7 +205,7 @@ FINAL PRIORITY FOR PASS 2:
 Do not stop at natural cleanup.
 Perform a clearly visible high-end beauty retouch.
 The visual difference between pass 1 and pass 2 must be obvious.
-The face should look like the same person after professional grooming, beauty lighting, and extensive manual Photoshop retouching.
+The face should look like the same person after professional grooming, high-key beauty lighting, and extensive manual Photoshop retouching at a premium Korean photo studio.
 `;
 }
 
@@ -227,16 +234,15 @@ CLOTHING:
 
 BACKGROUND:
 - ${background}
-- smooth seamless low-saturation studio background
-- subtle radial brightness behind the head
+- smooth seamless soft studio gradient background, slightly brighter behind the head
+- clean pastel tone, never vivid or saturated
 - no objects, no text, no patterns, no scenery
-- do not use vivid sky blue
 
 STUDIO LIGHTING:
-- preserve the premium facial beauty lighting from PASS 2
+- preserve the high-key facial beauty lighting from PASS 2
 - add subtle rim light for hair/background separation
-- keep the face bright, dimensional, and polished
-- avoid flattening the face during the clothing/background edit
+- keep the face bright, luminous, clean, and polished with very soft shadows
+- do not add dramatic contrast or dark contouring
 
 COMPOSITION:
 - vertical 3:4 professional ID portrait
@@ -248,8 +254,8 @@ COMPOSITION:
 - stable near-symmetrical composition
 
 FINAL QUALITY:
-- premium Korean beauty-profile studio
-- actor-agency profile / executive portrait / high-end employment photo finish
+- premium Korean photo studio (사진관) heavily retouched job-application photo finish
+- bright porcelain skin with a soft glow, clean pastel background, crisp outfit
 - polished enough to feel clearly beyond a standard ID photo
 - face remains strongly retouched and polished
 - sharp eyes, eyebrows, and hair
@@ -309,15 +315,14 @@ ${COMMON_RULES}
 - 목과 옷깃의 경계와 그림자는 실제 촬영처럼 자연스럽게 연결한다.
 
 [조명과 배경]
-- 한국 프리미엄 사진관의 대형 소프트박스 뷰티 조명을 적용한다.
-- 정면 위쪽의 부드러운 메인 라이트와 약한 정면 필라이트를 사용한다.
+- 한국 프리미엄 사진관 취업사진의 하이키 뷰티 조명을 적용한다.
+- 정면 위쪽의 크고 부드러운 메인 라이트와 충분한 정면 필라이트로 얼굴 그림자를 거의 없앤다.
 - 머리카락과 배경이 분리되도록 아주 약한 림라이트를 적용한다.
-- 얼굴 중앙은 밝고 깨끗하게, 얼굴 외곽은 아주 미세하게 어둡게 하여 입체감을 만든다.
-- 평평한 여권사진 조명처럼 보이지 않게 한다.
+- 얼굴 전체가 밝고 맑고 깨끗하게 보이도록 하며, 어두운 윤곽 음영이나 극적인 측광은 사용하지 않는다.
 - 배경: ${background}
-- 인물 뒤 중앙이 아주 은은하게 밝아지는 저채도 스튜디오 그라데이션을 사용한다.
+- 인물 뒤 중앙이 은은하게 밝아지는 부드러운 파스텔 톤 스튜디오 그라데이션을 사용한다.
 - 사물, 글자, 패턴, 풍경은 넣지 않는다.
-- 밝은 하늘색 배경처럼 강한 파란색은 사용하지 않는다.
+- 채도가 강한 원색 배경은 사용하지 않는다.
 
 [구도]
 - 세로 3:4 프리미엄 프로필 사진.
@@ -337,21 +342,18 @@ ${COMMON_RULES}
 - Frequency Separation 방식으로 작업한 듯 피부톤과 피부결을 분리하여 정교하게 정돈한다.
 - 잡티, 붉은기, 얼룩, 피부톤 불균일을 적극적으로 제거한다.
 - 모공은 크게 감소시키되 미세한 실제 피부 질감은 남긴다.
-- 다크서클과 눈 밑 음영은 약 60~75% 완화한다.
+- 다크서클과 눈 밑 음영은 약 80~90% 완화한다.
 - 눈물고랑, 눈 밑 잔주름, 팔자와 입가의 어두운 음영을 부드럽게 완화한다.
 - 수염 자국과 입 주변의 칙칙하고 푸른 색조를 크게 줄인다.
 - 얼굴 중앙은 원본보다 밝고 깨끗하게 표현한다.
-- 피부는 화사하고 균일하게 정리하되 플라스틱처럼 보이지 않게 한다.
+- 목표 피부: 밝고 맑은 도자기 피부, 은은한 광, 잡티와 모공이 거의 보이지 않는 사진관 고보정 피부.
+- 피부는 화사하고 균일하게 정리하되 플라스틱처럼 보이지 않게 아주 미세한 질감만 남긴다.
 
-[Dodge & Burn]
-- 이마 중앙에 부드러운 하이라이트를 준다.
-- 콧대 중앙에 깨끗하고 좁은 하이라이트를 준다.
-- 광대 상단을 은은하게 밝힌다.
-- 눈 아래 삼각존을 밝게 정돈한다.
-- 광대 아래에는 매우 부드러운 음영을 준다.
-- 턱선 바로 아래에는 얇고 자연스러운 그림자를 만들어 턱선을 또렷하게 한다.
-- 얼굴 외곽은 중앙보다 아주 미세하게 어둡게 하여 얼굴에 입체감을 만든다.
-- 뼈대를 과도하게 바꾸는 대신 빛과 명암으로 훨씬 정돈되고 사진발 좋은 얼굴을 만든다.
+[하이라이트]
+- 이마 중앙, 콧대, 광대 상단, 눈 아래 삼각존을 밝고 깨끗하게 정돈한다.
+- 얼굴 음영은 아주 옅고 부드럽게 유지하고, 어두운 컨투어 음영은 넣지 않는다.
+- 턱선은 깔끔하게 정돈하되 그림자로 강하게 깎지 않는다.
+- 얼굴 외곽을 어둡게 만들지 않는다.
 
 [눈]
 - 양쪽 눈이 카메라를 자연스럽게 정면 응시하도록 보정한다.
@@ -364,7 +366,7 @@ ${COMMON_RULES}
 [눈썹과 얼굴 디테일]
 - 눈썹의 삐친 털을 정리하고 자연스러운 선명도를 높인다.
 - 코 옆, 입 주변, 턱 주변의 거친 질감을 정돈한다.
-- 입술은 건강하고 자연스러운 혈색으로 미세하게 보정한다.
+- 입술과 볼은 건강하고 자연스러운 혈색으로 보정한다.
 
 [최종 마감]
 - 눈, 눈썹, 머리카락은 매우 선명하게 표현한다.
@@ -403,5 +405,26 @@ ${COMMON_RULES}
 [보정]
 - 피부 보정은 약하게 한다. 피부 톤, 피부색, 입술색, 머리색은 원본 그대로 유지한다.
 - 색이 얼굴에 어떻게 어울리는지 비교하는 것이 목적이므로 얼굴 색을 옷 색에 맞춰 바꾸지 않는다.
+`;
+}
+
+// 퍼스널 컬러 진단 프롬프트 (사진 분석 전용, 좋아하는 색은 서버 코드에서 별도 반영)
+export function buildDiagnosePrompt() {
+  return `
+당신은 퍼스널 컬러 컨설턴트다. 입력된 2~3장의 사진은 모두 같은 학생이다.
+사진 속 얼굴의 피부색, 눈동자 색, 머리카락 색, 피부와 머리카락 사이의 대비를 보고 4계절 퍼스널 컬러 유형을 판단한다.
+
+[판단 규칙]
+- 옷 색, 배경 색, 조명 색이 피부에 비친 것은 판단에서 제외한다. 교실 형광등이나 카메라 화이트밸런스로 피부가 노랗거나 푸르게 보일 수 있음을 감안한다.
+- 여러 장의 사진을 종합해 가장 일관된 특징으로 판단한다.
+- 봄(spring): 따뜻하고 밝고 화사함 / 여름(summer): 차갑고 밝고 부드러움 / 가을(autumn): 따뜻하고 깊고 차분함 / 겨울(winter): 차갑고 선명하고 대비가 큼
+- 네 계절 점수의 합은 100으로 한다. 애매하면 점수를 비슷하게 나눈다.
+- 외모를 평가하거나 장애 유무를 추정하지 않는다. 오직 색의 특징만 말한다.
+
+[문장 작성]
+- reason: 학생에게 직접 말하듯 아주 쉬운 한국어 1~2문장, 존댓말, 긍정적으로. 예: "피부가 맑고 밝아서 시원하고 부드러운 색이 얼굴을 환하게 해 줘요."
+- teacher_note: 교사 확인용 관찰 내용 1문장(피부 바탕색, 눈동자, 머리색, 대비). 사진 조명이 판단을 어렵게 하면 그 사실도 적는다.
+
+반드시 지정된 JSON 형식으로만 답한다.
 `;
 }
