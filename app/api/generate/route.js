@@ -1,40 +1,65 @@
-import { buildFinalPrompt } from '../../lib/prompts';
+import { buildFaceBasePrompt, buildFinalPrompt, buildSecondPassPrompt, buildThirdPassPrompt } from '../../lib/prompts';
 import { errorResponse, getClient, httpError, imageModel, readImages, responseModel, toDataUrl, withFidelity } from '../../lib/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-// 1회 통합 생성: 헤어 정돈, 밝은 얼굴, 의상, 배경을 한 번에 완성
-async function generateSinglePass(client, uploadables, formValues, imageModelName) {
-  const responseModelName = responseModel();
-  const prompt = buildFinalPrompt(formValues);
-  const inputImages = await Promise.all(uploadables.map((file) => toDataUrl(file)));
+async function runImageTool(client, { responseModelName, imageModelName, prompt, inputImages = [], previousResponseId = null }) {
   const content = [{ type: 'input_text', text: prompt }];
-  for (const img of inputImages) content.push({ type: 'input_image', image_url: img, detail: 'high' });
+  for (const img of inputImages) {
+    content.push({ type: 'input_image', image_url: img, detail: 'high' });
+  }
 
-  const response = await withFidelity((fidelity) => client.responses.create({
-    model: responseModelName,
-    input: [{ role: 'user', content }],
-    tools: [{
-      type: 'image_generation',
-      model: imageModelName,
-      size: '1152x1536',
-      quality: 'max',
-      output_format: 'jpeg',
-      output_compression: 95,
-      ...(fidelity ? { input_fidelity: 'high' } : {})
-    }],
-    tool_choice: { type: 'image_generation' }
-  }));
+  const response = await withFidelity((fidelity) => {
+    const payload = {
+      model: responseModelName,
+      input: [{ role: 'user', content }],
+      tools: [
+        {
+          type: 'image_generation',
+          model: imageModelName,
+          size: '1152x1536',
+          quality: 'max',
+          output_format: 'jpeg',
+          output_compression: 95,
+          ...(fidelity ? { input_fidelity: 'high' } : {})
+        }
+      ],
+      tool_choice: { type: 'image_generation' }
+    };
+    if (previousResponseId) payload.previous_response_id = previousResponseId;
+    return client.responses.create(payload);
+  });
 
   const imageCall = response.output?.find((item) => item.type === 'image_generation_call');
   const b64 = imageCall?.result;
   if (!b64) throw httpError(502, 'Responses API에서 이미지 결과를 받지 못했습니다.');
 
-  return { b64, responseModel: response.model || responseModelName, pipeline: 'responses-single-pass-studio' };
+  return { responseId: response.id, b64, model: response.model || responseModelName };
 }
 
-// 대체 방식: Responses 경로가 실패했을 때 같은 프롬프트로 이미지 편집 API 사용
+async function generateThreePass(client, uploadables, formValues, imageModelName) {
+  const responseModelName = responseModel();
+  const inputImages = await Promise.all(uploadables.map((file) => toDataUrl(file)));
+
+  // 1차: 얼굴 기준 이미지
+  const pass1 = await runImageTool(client, {
+    responseModelName, imageModelName, prompt: buildFaceBasePrompt(formValues), inputImages
+  });
+
+  // 2차: 얼굴 전용 사진관 고보정(하이키 뷰티)
+  const pass2 = await runImageTool(client, {
+    responseModelName, imageModelName, prompt: buildSecondPassPrompt(formValues), previousResponseId: pass1.responseId
+  });
+
+  // 3차: 의상, 배경, 최종 구도 및 마감
+  const pass3 = await runImageTool(client, {
+    responseModelName, imageModelName, prompt: buildThirdPassPrompt(formValues), previousResponseId: pass2.responseId
+  });
+
+  return { b64: pass3.b64, responseModel: pass3.model, pipeline: 'responses-three-pass-premium' };
+}
+
 async function generateFallback(client, uploadables, formValues, imageModelName) {
   const prompt = buildFinalPrompt(formValues);
 
@@ -53,7 +78,7 @@ async function generateFallback(client, uploadables, formValues, imageModelName)
   const b64 = result?.data?.[0]?.b64_json;
   if (!b64) throw httpError(502, 'Images API에서 이미지 결과를 받지 못했습니다.');
 
-  return { b64, responseModel: null, pipeline: 'images-edit-fallback-single-pass' };
+  return { b64, responseModel: null, pipeline: 'images-edit-fallback' };
 }
 
 export async function POST(request) {
@@ -72,16 +97,17 @@ export async function POST(request) {
       background: String(form.get('background') || '')
     };
 
-    // 선택값 오류는 생성 전에 바로 알린다
-    buildFinalPrompt(formValues);
+    // 선택값 오류는 생성 전에 바로 알린다(대체 경로로 넘어가지 않도록)
+    buildThirdPassPrompt(formValues);
+    buildFaceBasePrompt(formValues);
 
     const model = imageModel();
 
     let generated;
     try {
-      generated = await generateSinglePass(client, uploadables, formValues, model);
+      generated = await generateThreePass(client, uploadables, formValues, model);
     } catch (responsesError) {
-      console.error('Single-pass Responses generation failed; falling back to Images API.', responsesError);
+      console.error('Premium three-pass Responses generation failed; falling back to Images API.', responsesError);
       generated = await generateFallback(client, uploadables, formValues, model);
     }
 
